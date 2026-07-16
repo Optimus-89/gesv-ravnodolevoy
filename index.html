@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Калькулятор ГЭСВ — равнодолевой график платежей</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f4f6f8;
+    --panel: #ffffff;
+    --border: #dde3e9;
+    --text: #1c2530;
+    --text-muted: #62707d;
+    --accent: #2457c5;
+    --accent-dark: #173d92;
+    --green-bg: #e5f6ec;
+    --green-text: #167c46;
+    --red-bg: #fde8ea;
+    --red-text: #c62839;
+    --grace-bg: #fff8e0;
+    --radius: 8px;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    min-width: 360px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    font-size: 14px;
+    line-height: 1.4;
+  }
+  h1 { font-size: 18px; margin: 0 0 4px; }
+  h2 { font-size: 15px; margin: 0 0 10px; color: var(--text); }
+  .subtitle { color: var(--text-muted); font-size: 13px; margin: 0 0 16px; }
+
+  .app-header {
+    padding: 16px 20px 8px;
+  }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 380px 1fr;
+    gap: 16px;
+    padding: 0 20px 24px;
+    align-items: start;
+  }
+  @media (max-width: 980px) {
+    .layout { grid-template-columns: 1fr; }
+  }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+
+  label { display: block; font-size: 12.5px; color: var(--text-muted); margin: 10px 0 3px; }
+  label:first-child { margin-top: 0; }
+  input[type=number], input[type=date], select {
+    width: 100%;
+    padding: 7px 8px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 13.5px;
+    font-family: inherit;
+    background: #fff;
+    color: var(--text);
+  }
+  input:focus, select:focus, button:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .field-note { font-size: 11.5px; color: var(--text-muted); margin-top: 4px; }
+
+  fieldset { border: 1px solid var(--border); border-radius: 6px; margin: 12px 0 0; padding: 10px 10px 12px; }
+  legend { font-size: 12px; color: var(--text-muted); padding: 0 4px; }
+
+  .btn-row { display: flex; gap: 8px; margin-top: 14px; }
+  button {
+    cursor: pointer;
+    border: none;
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-size: 13.5px;
+    font-weight: 600;
+    font-family: inherit;
+  }
+  .btn-primary { background: var(--accent); color: #fff; flex: 1; }
+  .btn-primary:hover { background: var(--accent-dark); }
+  .btn-secondary { background: #eef1f5; color: var(--text); border: 1px solid var(--border); }
+  .btn-secondary:hover { background: #e4e8ee; }
+  .btn-secondary:disabled { opacity: .5; cursor: not-allowed; }
+
+  .error-block {
+    display: none;
+    background: var(--red-bg);
+    color: var(--red-text);
+    border: 1px solid #f3b8bf;
+    border-radius: 6px;
+    padding: 10px 12px;
+    font-size: 13px;
+    margin-top: 12px;
+  }
+  .error-block.visible { display: block; }
+
+  .grace-table-wrap {
+    max-height: 260px;
+    overflow-y: auto;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    margin-top: 8px;
+  }
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  .grace-table-wrap table thead th {
+    position: sticky; top: 0;
+    background: #f0f3f6;
+    z-index: 1;
+  }
+  th, td { padding: 5px 7px; border-bottom: 1px solid var(--border); text-align: center; white-space: nowrap; }
+  th { font-weight: 600; color: var(--text-muted); font-size: 11.5px; }
+  td.month-col { color: var(--text-muted); }
+  input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; }
+  .weight-input { width: 60px; padding: 3px 4px; text-align: center; }
+
+  .gesv-card {
+    text-align: center;
+    padding: 22px 16px;
+  }
+  .gesv-value { font-size: 44px; font-weight: 700; color: var(--accent-dark); }
+  .gesv-label { color: var(--text-muted); font-size: 13px; margin-top: 4px; }
+
+  .tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  @media (max-width: 640px) { .tiles { grid-template-columns: repeat(2, 1fr); } }
+  .tile { border: 1px solid var(--border); border-radius: 6px; padding: 10px; text-align: center; background: #fafbfc; }
+  .tile .tile-label { font-size: 11.5px; color: var(--text-muted); margin-bottom: 4px; }
+  .tile .tile-value { font-size: 16px; font-weight: 600; }
+  .tile.ok { background: var(--green-bg); }
+  .tile.ok .tile-value { color: var(--green-text); }
+  .tile.bad { background: var(--red-bg); }
+  .tile.bad .tile-value { color: var(--red-text); }
+
+  .schedule-wrap {
+    max-height: 560px;
+    overflow: auto;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+  }
+  .schedule-wrap table thead th {
+    position: sticky; top: 0;
+    background: #f0f3f6;
+    z-index: 1;
+  }
+  tr.grace-row td { background: var(--grace-bg); }
+  .adj-badge {
+    display: inline-block;
+    margin-left: 3px;
+    color: #a3690b;
+    cursor: help;
+    font-size: 11px;
+  }
+  .empty-hint { color: var(--text-muted); padding: 20px; text-align: center; }
+
+  .note {
+    font-size: 11.5px;
+    color: var(--text-muted);
+    background: #f7f9fb;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 10px;
+    margin-top: 10px;
+  }
+</style>
+</head>
+<body>
+
+<div class="app-header">
+  <h1>Калькулятор ГЭСВ — равнодолевой график платежей</h1>
+  <p class="subtitle">Расчёт годовой эффективной ставки вознаграждения методом XIRR. Работает локально в браузере, без передачи данных на сервер.</p>
+</div>
+
+<div class="layout">
+
+  <!-- LEFT COLUMN -->
+  <div>
+    <div class="panel">
+      <h2>Параметры кредита</h2>
+
+      <label for="f-amount">Сумма кредита</label>
+      <input type="number" id="f-amount" value="1000000" min="0" step="1000">
+
+      <div class="field-row">
+        <div>
+          <label for="f-rate">Ставка, % годовых</label>
+          <input type="number" id="f-rate" value="20" min="0" step="0.1">
+        </div>
+        <div>
+          <label for="f-term">Срок, мес.</label>
+          <input type="number" id="f-term" value="12" min="1" max="60" step="1">
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div>
+          <label for="f-issue-date">Дата выдачи</label>
+          <input type="date" id="f-issue-date">
+        </div>
+        <div>
+          <label for="f-base-days">База дней в году</label>
+          <input type="number" id="f-base-days" value="365" min="1" step="1">
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div>
+          <label for="f-od-period">Периодичность погашения ОД</label>
+          <select id="f-od-period">
+            <option value="monthly" selected>Ежемесячно</option>
+            <option value="quarterly">Ежеквартально</option>
+            <option value="semiannual">Раз в полгода</option>
+            <option value="annual">Раз в год</option>
+            <option value="end">В конце срока</option>
+          </select>
+        </div>
+        <div>
+          <label for="f-pct-period">Периодичность погашения %</label>
+          <select id="f-pct-period">
+            <option value="monthly" selected>Ежемесячно</option>
+            <option value="quarterly">Ежеквартально</option>
+            <option value="semiannual">Раз в полгода</option>
+            <option value="annual">Раз в год</option>
+            <option value="end">В конце срока</option>
+          </select>
+        </div>
+      </div>
+
+      <label for="f-pool-method">Способ распределения пула % (накоплено за льготу)</label>
+      <select id="f-pool-method">
+        <option value="nearest" selected>Ближайший платёж</option>
+        <option value="all">Все платежи</option>
+        <option value="manual">Вручную</option>
+      </select>
+      <div class="field-note">«Вручную»: вес — доля от <b>текущего</b> остатка пула, списываемая в этом месяце. На последней оставшейся дате уплаты % остаток пула списывается полностью автоматически.</div>
+
+      <fieldset>
+        <legend>Комиссии</legend>
+        <div class="field-row">
+          <div>
+            <label for="f-fee-pct">За выдачу, % от суммы</label>
+            <input type="number" id="f-fee-pct" value="0" min="0" step="0.1">
+          </div>
+          <div>
+            <label for="f-fee-fix">За выдачу, фикс.</label>
+            <input type="number" id="f-fee-fix" value="0" min="0" step="100">
+          </div>
+        </div>
+        <div class="field-row">
+          <div>
+            <label for="f-svc-pct">Ежемес., % от остатка</label>
+            <input type="number" id="f-svc-pct" value="0" min="0" step="0.1">
+          </div>
+          <div>
+            <label for="f-svc-fix">Ежемес., фикс.</label>
+            <input type="number" id="f-svc-fix" value="0" min="0" step="100">
+          </div>
+        </div>
+      </fieldset>
+
+      <div class="error-block" id="error-block"></div>
+    </div>
+
+    <div class="panel">
+      <h2>Льготы по месяцам</h2>
+      <div class="grace-table-wrap">
+        <table>
+          <thead>
+            <tr><th>Мес.</th><th>Льгота ОД</th><th>Льгота %</th><th>Вес (ручн.)</th></tr>
+          </thead>
+          <tbody id="grace-tbody"></tbody>
+        </table>
+      </div>
+      <div class="btn-row">
+        <button class="btn-primary" id="btn-calc">Рассчитать</button>
+        <button class="btn-secondary" id="btn-export" disabled>Экспорт CSV</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT COLUMN -->
+  <div>
+    <div class="panel gesv-card">
+      <div class="gesv-value" id="gesv-value">—</div>
+      <div class="gesv-label">Годовая эффективная ставка вознаграждения (ГЭСВ)</div>
+    </div>
+
+    <div class="panel">
+      <h2>Проверочные показатели</h2>
+      <div class="tiles" id="tiles">
+        <div class="tile" data-tile="principal"><div class="tile-label">Погашено ОД</div><div class="tile-value">—</div></div>
+        <div class="tile" data-tile="pool"><div class="tile-label">Остаток пула</div><div class="tile-value">—</div></div>
+        <div class="tile" data-tile="bucket"><div class="tile-label">Остаток бакета</div><div class="tile-value">—</div></div>
+        <div class="tile" data-tile="balance"><div class="tile-label">Остаток долга</div><div class="tile-value">—</div></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>График платежей</h2>
+      <div class="schedule-wrap">
+        <table id="schedule-table">
+          <thead>
+            <tr>
+              <th>№</th><th>Дата</th><th>Due ОД</th><th>Due %</th>
+              <th>Льгота ОД</th><th>Льгота %</th><th>Остаток на начало</th>
+              <th>Погашение ОД</th><th>% к уплате (итого)</th><th>Комиссия</th>
+              <th>Итоговый платёж</th><th>Остаток на конец</th>
+            </tr>
+          </thead>
+          <tbody id="schedule-tbody">
+            <tr><td colspan="12" class="empty-hint">Нажмите «Рассчитать», чтобы увидеть график</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="note">Строки с активной льготой выделены цветом. Значок ⚠ у даты означает перенос с выходного/праздничного дня РК.</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+'use strict';
+
+/* ===================== Константы ===================== */
+
+// Известные (подтверждённые) даты Курбан-айта — обновлять по мере официального
+// объявления Духовным управлением мусульман Казахстана.
+const KURBAN_AIT_KNOWN = {
+  2025: [6, 6],
+  2026: [5, 27],
+};
+
+const PERIODICITY_INTERVAL = {
+  monthly: 1, quarterly: 3, semiannual: 6, annual: 12, end: null,
+};
+
+/* ===================== Дата: утилиты ===================== */
+
+function dateKey(d) { return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); }
+function isWeekend(d) { const day = d.getDay(); return day === 0 || day === 6; }
+
+function addMonthsClamped(date, months) {
+  const day = date.getDate();
+  const d = new Date(date.getFullYear(), date.getMonth(), 1);
+  d.setMonth(d.getMonth() + months);
+  const daysInMonth = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+  d.setDate(Math.min(day, daysInMonth));
+  return d;
+}
+
+function daysBetween(a, b) { return Math.round((b.getTime() - a.getTime()) / 86400000); }
+
+function formatDateRu(d) {
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  return `${dd}.${mm}.${d.getFullYear()}`;
+}
+
+function formatMoney(n) {
+  return n.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+/* ===================== Календарь нерабочих дней РК ===================== */
+
+function getTransferableHolidays(year) {
+  const list = [];
+  const add = (m, d) => list.push(new Date(year, m - 1, d));
+  add(1, 1); add(1, 2);
+  add(3, 8);
+  add(3, 21); add(3, 22); add(3, 23);
+  add(5, 1); add(5, 7); add(5, 9);
+  add(7, 6);
+  add(10, 25);
+  add(12, 16);
+  // День Конституции РК: с 2027 года — 15 марта. В переходном 2026 году праздник
+  // не отмечается ни 30 августа, ни 15 марта (закон о переносе даты, с 01.07.2026).
+  if (year >= 2027) add(3, 15);
+  else if (year < 2026) add(8, 30);
+  return list;
+}
+
+function getKurbanAitDate(year) {
+  if (KURBAN_AIT_KNOWN[year]) {
+    const [m, d] = KURBAN_AIT_KNOWN[year];
+    return { date: new Date(year, m - 1, d), approx: false };
+  }
+  const knownYears = Object.keys(KURBAN_AIT_KNOWN).map(Number);
+  let nearest = knownYears[0];
+  for (const y of knownYears) if (Math.abs(y - year) < Math.abs(nearest - year)) nearest = y;
+  const [m, d] = KURBAN_AIT_KNOWN[nearest];
+  const diffYears = year - nearest;
+  // Лунный календарь смещается примерно на 11 дней раньше в год — грубая аппроксимация
+  // для лет, ещё не объявленных официально.
+  const approxTime = new Date(nearest, m - 1, d).getTime() - diffYears * 11 * 86400000;
+  const t = new Date(approxTime);
+  return { date: new Date(t.getFullYear(), t.getMonth(), t.getDate()), approx: true };
+}
+
+function buildCalendar(minYear, maxYear) {
+  const nonWorking = new Set();
+  const isNonWorking = (d) => isWeekend(d) || nonWorking.has(dateKey(d));
+  const allTransferable = [];
+
+  for (let y = minYear; y <= maxYear; y++) {
+    const transferable = getTransferableHolidays(y);
+    for (const d of transferable) nonWorking.add(dateKey(d));
+    allTransferable.push(...transferable);
+    nonWorking.add(dateKey(new Date(y, 0, 7))); // 7 января — православное Рождество
+    nonWorking.add(dateKey(getKurbanAitDate(y).date));
+  }
+
+  // Компенсирующий перенос: праздник на сб/вс сдвигает следующий свободный рабочий
+  // день на нерабочий. Обрабатываем по возрастанию дат, чтобы поддержать цепочки
+  // (например, два выходных дня Наурыза подряд).
+  allTransferable.sort((a, b) => a - b);
+  for (const h of allTransferable) {
+    if (isWeekend(h)) {
+      const next = new Date(h);
+      do { next.setDate(next.getDate() + 1); } while (isNonWorking(next));
+      nonWorking.add(dateKey(next));
+    }
+  }
+  return { isNonWorking };
+}
+
+function nextWorkday(date, isNonWorking) {
+  const d = new Date(date);
+  while (isNonWorking(d)) d.setDate(d.getDate() + 1);
+  return d;
+}
+
+/* ===================== XIRR ===================== */
+
+function xnpv(rate, cashflows) {
+  const t0 = cashflows[0].date;
+  let sum = 0;
+  for (const cf of cashflows) {
+    const days = daysBetween(t0, cf.date);
+    sum += cf.amount / Math.pow(1 + rate, days / 365);
+  }
+  return sum;
+}
+
+function calcXIRR(cashflows) {
+  let lo = -0.999999, hi = 10;
+  let fLo = xnpv(lo, cashflows), fHi = xnpv(hi, cashflows);
+  let guard = 0;
+  while (fLo * fHi > 0 && guard < 60) { hi *= 2; fHi = xnpv(hi, cashflows); guard++; }
+  if (fLo * fHi > 0) return null;
+
+  let mid = 0;
+  for (let it = 0; it < 300; it++) {
+    mid = (lo + hi) / 2;
+    const fMid = xnpv(mid, cashflows);
+    if (Math.abs(fMid) < 1e-9 || (hi - lo) < 1e-9) return mid;
+    if ((fLo < 0) === (fMid < 0)) { lo = mid; fLo = fMid; } else { hi = mid; }
+  }
+  return mid;
+}
+
+/* ===================== Расчётное ядро ===================== */
+
+function resolveInterval(periodicity, term) {
+  return periodicity === 'end' ? term : PERIODICITY_INTERVAL[periodicity];
+}
+
+function validateInputs(p) {
+  if (!(p.amount > 0)) return 'Сумма кредита должна быть больше нуля.';
+  if (!(p.ratePct >= 0)) return 'Ставка не может быть отрицательной.';
+  if (!p.issueDate || isNaN(p.issueDate.getTime())) return 'Укажите дату выдачи кредита.';
+  if (!Number.isInteger(p.termMonths) || p.termMonths < 1 || p.termMonths > 60) return 'Срок должен быть от 1 до 60 месяцев.';
+  if (!(p.baseDays > 0)) return 'База расчёта дней в году должна быть больше нуля.';
+  if (!(p.feePct >= 0) || !(p.feeFix >= 0) || !(p.svcPct >= 0) || !(p.svcFix >= 0)) return 'Комиссии не могут быть отрицательными.';
+  for (const m of p.months) {
+    if (!(m.weight >= 0) || !(m.weight <= 1)) return 'Вес ручного распределения должен быть от 0 до 1.';
+  }
+  return null;
+}
+
+function generateSchedule(p) {
+  const err = validateInputs(p);
+  if (err) return { error: err };
+
+  const N = p.termMonths;
+  const rate = p.ratePct / 100;
+  const feePctFrac = p.feePct / 100;
+  const svcPctFrac = p.svcPct / 100;
+
+  const minYear = p.issueDate.getFullYear() - 1;
+  const maxYear = p.issueDate.getFullYear() + Math.ceil(N / 12) + 2;
+  const calendar = buildCalendar(minYear, maxYear);
+
+  // Даты месяцев 0..N (0 = дата выдачи, не переносится согласно 6.5)
+  const monthDates = [p.issueDate];
+  const wasAdjusted = [false];
+  for (let i = 1; i <= N; i++) {
+    const raw = addMonthsClamped(p.issueDate, i);
+    const adj = nextWorkday(raw, calendar.isNonWorking);
+    monthDates.push(adj);
+    wasAdjusted.push(adj.getTime() !== raw.getTime());
+  }
+
+  const intervalOD = resolveInterval(p.odPeriodicity, N);
+  const intervalPct = resolveInterval(p.pctPeriodicity, N);
+
+  const dueOD = [false], duePct = [false];
+  for (let i = 1; i <= N; i++) {
+    dueOD.push(i % intervalOD === 0 || i === N);
+    duePct.push(i % intervalPct === 0 || i === N);
+  }
+
+  const graceOD = [false], gracePct = [false], weight = [0];
+  for (let i = 1; i <= N; i++) {
+    const m = p.months[i - 1];
+    graceOD.push(!!m.graceOD);
+    gracePct.push(!!m.gracePct);
+    weight.push(Number(m.weight) || 0);
+  }
+
+  // Суффиксные суммы: сколько ещё не-льготных due-дат осталось, включая текущую
+  const remainingOD = new Array(N + 2).fill(0);
+  const remainingPct = new Array(N + 2).fill(0);
+  for (let i = N; i >= 1; i--) {
+    remainingOD[i] = remainingOD[i + 1] + ((dueOD[i] && !graceOD[i]) ? 1 : 0);
+    remainingPct[i] = remainingPct[i + 1] + ((duePct[i] && !gracePct[i]) ? 1 : 0);
+  }
+
+  const rows = [];
+  let balance = p.amount, bucket = 0, pool = 0, sumPrincipal = 0, lastPctDueIndex = 0;
+
+  for (let i = 1; i <= N; i++) {
+    const balanceStart = balance;
+
+    let principal = 0;
+    if (dueOD[i] && !graceOD[i] && remainingOD[i] > 0) principal = balanceStart / remainingOD[i];
+    const balanceEnd = balanceStart - principal;
+
+    const daysInPeriod = daysBetween(monthDates[i - 1], monthDates[i]);
+    const interestAccrued = balanceStart * rate / p.baseDays * daysInPeriod;
+    const bucketStart = bucket;
+    const amountReady = bucketStart + interestAccrued;
+
+    let interestPaid = 0, poolAdd = 0;
+    if (duePct[i] && !gracePct[i]) interestPaid = amountReady;
+    else if (gracePct[i]) poolAdd = amountReady;
+    const bucketEnd = (duePct[i] || gracePct[i]) ? 0 : amountReady;
+
+    const poolStart = pool;
+    let distribution = 0;
+    if (duePct[i] && !gracePct[i]) {
+      if (p.poolMethod === 'nearest') distribution = poolStart;
+      else if (p.poolMethod === 'all') distribution = remainingPct[i] > 0 ? poolStart / remainingPct[i] : 0;
+      else if (p.poolMethod === 'manual') distribution = remainingPct[i] === 1 ? poolStart : poolStart * weight[i];
+    }
+    const poolEnd = poolStart + poolAdd - distribution;
+
+    const fee = p.svcFix + svcPctFrac * balanceStart;
+    const totalInterest = interestPaid + distribution;
+    const totalPayment = principal + totalInterest + fee;
+
+    if (duePct[i] && !gracePct[i]) lastPctDueIndex = i;
+    sumPrincipal += principal;
+
+    rows.push({
+      i, date: monthDates[i], adjusted: wasAdjusted[i],
+      dueOD: dueOD[i], duePct: duePct[i], graceOD: graceOD[i], gracePct: gracePct[i],
+      balanceStart, principal, interestAccrued, totalInterest, poolAdd, distribution,
+      poolEnd, bucketEnd, fee, totalPayment, balanceEnd,
+    });
+
+    balance = balanceEnd; bucket = bucketEnd; pool = poolEnd;
+  }
+
+  if (lastPctDueIndex === 0) lastPctDueIndex = N; // весь срок в льготе по % — контрольная точка последний месяц
+
+  const checks = {
+    sumPrincipal, principalDiff: sumPrincipal - p.amount,
+    poolEnd: rows[lastPctDueIndex - 1].poolEnd,
+    bucketEnd: rows[lastPctDueIndex - 1].bucketEnd,
+    balanceEnd: rows[N - 1].balanceEnd,
+  };
+
+  const feeAmount = p.amount * feePctFrac + p.feeFix;
+  const cashflows = [{ date: p.issueDate, amount: -(p.amount - feeAmount) }];
+  for (const r of rows) cashflows.push({ date: r.date, amount: r.totalPayment });
+
+  const gesv = calcXIRR(cashflows);
+
+  return { rows, checks, gesv };
+}
+
+/* ===================== UI: состояние ===================== */
+
+let monthsState = [];
+let lastResult = null;
+
+function rebuildGraceTable(term) {
+  const old = monthsState;
+  monthsState = [];
+  for (let i = 0; i < term; i++) {
+    monthsState.push(old[i] ? old[i] : { graceOD: false, gracePct: false, weight: 0 });
+  }
+  renderGraceTable();
+}
+
+function renderGraceTable() {
+  const tbody = document.getElementById('grace-tbody');
+  tbody.innerHTML = '';
+  monthsState.forEach((m, idx) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="month-col">${idx + 1}</td>
+      <td><input type="checkbox" data-idx="${idx}" data-field="graceOD" ${m.graceOD ? 'checked' : ''}></td>
+      <td><input type="checkbox" data-idx="${idx}" data-field="gracePct" ${m.gracePct ? 'checked' : ''}></td>
+      <td><input type="number" class="weight-input" data-idx="${idx}" data-field="weight" min="0" max="1" step="0.05" value="${m.weight}"></td>
+    `;
+    tbody.appendChild(tr);
+  });
+  tbody.querySelectorAll('input[type=checkbox]').forEach(cb => {
+    cb.addEventListener('change', () => { monthsState[+cb.dataset.idx][cb.dataset.field] = cb.checked; });
+  });
+  tbody.querySelectorAll('input[type=number]').forEach(inp => {
+    inp.addEventListener('input', () => { monthsState[+inp.dataset.idx][inp.dataset.field] = parseFloat(inp.value); });
+  });
+}
+
+function readParams() {
+  const dateStr = document.getElementById('f-issue-date').value;
+  return {
+    amount: parseFloat(document.getElementById('f-amount').value),
+    ratePct: parseFloat(document.getElementById('f-rate').value),
+    issueDate: dateStr ? new Date(dateStr + 'T00:00:00') : null,
+    termMonths: parseInt(document.getElementById('f-term').value, 10),
+    baseDays: parseFloat(document.getElementById('f-base-days').value),
+    odPeriodicity: document.getElementById('f-od-period').value,
+    pctPeriodicity: document.getElementById('f-pct-period').value,
+    poolMethod: document.getElementById('f-pool-method').value,
+    feePct: parseFloat(document.getElementById('f-fee-pct').value),
+    feeFix: parseFloat(document.getElementById('f-fee-fix').value),
+    svcPct: parseFloat(document.getElementById('f-svc-pct').value),
+    svcFix: parseFloat(document.getElementById('f-svc-fix').value),
+    months: monthsState,
+  };
+}
+
+function showError(msg) {
+  const el = document.getElementById('error-block');
+  el.textContent = msg;
+  el.classList.add('visible');
+}
+function hideError() {
+  const el = document.getElementById('error-block');
+  el.classList.remove('visible');
+  el.textContent = '';
+}
+
+function setTile(tile, value, isZeroTarget) {
+  const el = document.querySelector(`.tile[data-tile="${tile}"]`);
+  el.classList.remove('ok', 'bad');
+  el.querySelector('.tile-value').textContent = formatMoney(value);
+  if (isZeroTarget) el.classList.add(Math.abs(value) < 0.5 ? 'ok' : 'bad');
+}
+
+function renderResults(result) {
+  document.getElementById('gesv-value').textContent = result.gesv === null
+    ? 'Ошибка расчёта'
+    : (result.gesv * 100).toFixed(2) + '%';
+
+  setTile('principal', result.checks.sumPrincipal, false);
+  setTile('pool', result.checks.poolEnd, true);
+  setTile('bucket', result.checks.bucketEnd, true);
+  setTile('balance', result.checks.balanceEnd, true);
+
+  const tbody = document.getElementById('schedule-tbody');
+  tbody.innerHTML = '';
+  for (const r of result.rows) {
+    const tr = document.createElement('tr');
+    if (r.graceOD || r.gracePct) tr.classList.add('grace-row');
+    const dateHtml = formatDateRu(r.date) + (r.adjusted
+      ? ` <span class="adj-badge" title="Дата перенесена с выходного/праздничного дня">⚠</span>` : '');
+    tr.innerHTML = `
+      <td>${r.i}</td>
+      <td>${dateHtml}</td>
+      <td>${r.dueOD ? '✓' : '—'}</td>
+      <td>${r.duePct ? '✓' : '—'}</td>
+      <td>${r.graceOD ? '✓' : '—'}</td>
+      <td>${r.gracePct ? '✓' : '—'}</td>
+      <td>${formatMoney(r.balanceStart)}</td>
+      <td>${formatMoney(r.principal)}</td>
+      <td>${formatMoney(r.totalInterest)}</td>
+      <td>${formatMoney(r.fee)}</td>
+      <td>${formatMoney(r.totalPayment)}</td>
+      <td>${formatMoney(r.balanceEnd)}</td>
+    `;
+    tbody.appendChild(tr);
+  }
+}
+
+function doCalculate() {
+  hideError();
+  const params = readParams();
+  const result = generateSchedule(params);
+  if (result.error) {
+    showError(result.error);
+    lastResult = null;
+    document.getElementById('btn-export').disabled = true;
+    document.getElementById('gesv-value').textContent = '—';
+    document.querySelectorAll('.tile').forEach(t => { t.classList.remove('ok', 'bad'); t.querySelector('.tile-value').textContent = '—'; });
+    document.getElementById('schedule-tbody').innerHTML = '<tr><td colspan="12" class="empty-hint">Нажмите «Рассчитать», чтобы увидеть график</td></tr>';
+    return;
+  }
+  lastResult = result;
+  document.getElementById('btn-export').disabled = false;
+  renderResults(result);
+}
+
+function exportCSV() {
+  if (!lastResult) return;
+  const num = (n) => n.toFixed(2).replace('.', ',');
+  const header = ['№ платежа','Дата','Due ОД','Due %','Льгота ОД','Льгота %','Остаток на начало',
+    'Погашение ОД','Начислено %','% к уплате (итого)','Добавка в пул','Доплата из пула',
+    'Пул на конец','Бакет на конец','Комиссия','Итоговый платёж','Остаток на конец'];
+  const lines = [header.join(';')];
+  for (const r of lastResult.rows) {
+    lines.push([
+      r.i, formatDateRu(r.date) + (r.adjusted ? ' (перенесена)' : ''),
+      r.dueOD ? 1 : 0, r.duePct ? 1 : 0, r.graceOD ? 1 : 0, r.gracePct ? 1 : 0,
+      num(r.balanceStart), num(r.principal), num(r.interestAccrued), num(r.totalInterest),
+      num(r.poolAdd), num(r.distribution), num(r.poolEnd), num(r.bucketEnd),
+      num(r.fee), num(r.totalPayment), num(r.balanceEnd),
+    ].join(';'));
+  }
+  const csv = '﻿' + lines.join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'gesv_grafik.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+/* ===================== Инициализация ===================== */
+
+function init() {
+  const todayStr = new Date().toISOString().slice(0, 10);
+  document.getElementById('f-issue-date').value = todayStr;
+
+  rebuildGraceTable(12);
+
+  document.getElementById('f-term').addEventListener('change', (e) => {
+    let term = parseInt(e.target.value, 10);
+    if (!Number.isFinite(term)) return;
+    term = Math.max(1, Math.min(60, term));
+    e.target.value = term;
+    rebuildGraceTable(term);
+  });
+
+  document.getElementById('btn-calc').addEventListener('click', doCalculate);
+  document.getElementById('btn-export').addEventListener('click', exportCSV);
+}
+
+init();
+</script>
+</body>
+</html>
