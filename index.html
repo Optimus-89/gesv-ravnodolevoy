@@ -245,7 +245,7 @@
         <option value="all">Все платежи</option>
         <option value="manual">Вручную</option>
       </select>
-      <div class="field-note">«Вручную»: вес — доля от <b>текущего</b> остатка пула, списываемая в этом месяце. На последней оставшейся дате уплаты % остаток пула списывается полностью автоматически.</div>
+      <div class="field-note">«Вручную»: вес, % — доля от <b>текущего</b> остатка пула, списываемая в этом месяце. На последней оставшейся дате уплаты % остаток пула списывается полностью автоматически.</div>
 
       <fieldset>
         <legend>Комиссии</legend>
@@ -269,7 +269,7 @@
       <div class="grace-table-wrap">
         <table>
           <thead>
-            <tr><th>Мес.</th><th>Льгота ОД</th><th>Льгота %</th><th>Вес (ручн.)</th></tr>
+            <tr><th>Мес.</th><th>Льгота ОД</th><th>Льгота %</th><th>Вес (ручн.), %</th></tr>
           </thead>
           <tbody id="grace-tbody"></tbody>
         </table>
@@ -475,7 +475,7 @@ function validateInputs(p) {
   if (!(p.baseDays > 0)) return 'База расчёта дней в году должна быть больше нуля.';
   if (!(p.feePct >= 0) || !(p.feeFix >= 0)) return 'Комиссии не могут быть отрицательными.';
   for (const m of p.months) {
-    if (!(m.weight >= 0) || !(m.weight <= 1)) return 'Вес ручного распределения должен быть от 0 до 1.';
+    if (!(m.weight >= 0) || !(m.weight <= 100)) return 'Вес ручного распределения должен быть от 0 до 100%.';
   }
   return null;
 }
@@ -516,7 +516,7 @@ function generateSchedule(p) {
     const m = p.months[i - 1];
     graceOD.push(!!m.graceOD);
     gracePct.push(!!m.gracePct);
-    weight.push(Number(m.weight) || 0);
+    weight.push((Number(m.weight) || 0) / 100);
   }
 
   // Суффиксные суммы: сколько ещё не-льготных due-дат осталось, включая текущую
@@ -614,7 +614,7 @@ function renderGraceTable() {
       <td class="month-col">${idx + 1}</td>
       <td><input type="checkbox" data-idx="${idx}" data-field="graceOD" ${m.graceOD ? 'checked' : ''}></td>
       <td><input type="checkbox" data-idx="${idx}" data-field="gracePct" ${m.gracePct ? 'checked' : ''}></td>
-      <td><input type="number" class="weight-input" data-idx="${idx}" data-field="weight" min="0" max="1" step="0.05" value="${m.weight}"></td>
+      <td><input type="number" class="weight-input" data-idx="${idx}" data-field="weight" min="0" max="100" step="5" value="${m.weight}"></td>
     `;
     tbody.appendChild(tr);
   });
