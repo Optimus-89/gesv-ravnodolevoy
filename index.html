@@ -251,16 +251,14 @@
         <legend>Комиссии</legend>
         <div class="field-row">
           <div>
-            <label for="f-fee-pct">За выдачу, % от суммы</label>
+            <label for="f-fee-pct">Сумма комиссии %</label>
             <input type="number" id="f-fee-pct" value="0" min="0" step="0.1">
           </div>
           <div>
-            <label for="f-fee-fix">За выдачу, фикс.</label>
+            <label for="f-fee-fix">Комиссия в денежном выражении</label>
             <input type="number" id="f-fee-fix" value="0" min="0" step="100">
           </div>
         </div>
-        <label for="f-svc-fix">Ежемесячная комиссия, фикс.</label>
-        <input type="number" id="f-svc-fix" value="0" min="0" step="100">
       </fieldset>
 
       <div class="error-block" id="error-block"></div>
@@ -475,7 +473,7 @@ function validateInputs(p) {
   if (!p.issueDate || isNaN(p.issueDate.getTime())) return 'Укажите дату выдачи кредита.';
   if (!Number.isInteger(p.termMonths) || p.termMonths < 1 || p.termMonths > 60) return 'Срок должен быть от 1 до 60 месяцев.';
   if (!(p.baseDays > 0)) return 'База расчёта дней в году должна быть больше нуля.';
-  if (!(p.feePct >= 0) || !(p.feeFix >= 0) || !(p.svcFix >= 0)) return 'Комиссии не могут быть отрицательными.';
+  if (!(p.feePct >= 0) || !(p.feeFix >= 0)) return 'Комиссии не могут быть отрицательными.';
   for (const m of p.months) {
     if (!(m.weight >= 0) || !(m.weight <= 1)) return 'Вес ручного распределения должен быть от 0 до 1.';
   }
@@ -558,7 +556,7 @@ function generateSchedule(p) {
     }
     const poolEnd = poolStart + poolAdd - distribution;
 
-    const fee = p.svcFix;
+    const fee = 0;
     const totalInterest = interestPaid + distribution;
     const totalPayment = principal + totalInterest + fee;
 
@@ -641,7 +639,6 @@ function readParams() {
     poolMethod: document.getElementById('f-pool-method').value,
     feePct: parseFloat(document.getElementById('f-fee-pct').value),
     feeFix: parseFloat(document.getElementById('f-fee-fix').value),
-    svcFix: parseFloat(document.getElementById('f-svc-fix').value),
     months: monthsState,
   };
 }
