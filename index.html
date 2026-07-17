@@ -211,10 +211,13 @@
           <input type="date" id="f-issue-date">
         </div>
         <div>
-          <label for="f-base-days">База дней в году</label>
-          <input type="number" id="f-base-days" value="360" min="1" step="1">
+          <label for="f-end-date">Дата окончания кредита</label>
+          <input type="date" id="f-end-date">
         </div>
       </div>
+
+      <label for="f-base-days">База дней в году</label>
+      <input type="number" id="f-base-days" value="360" min="1" step="1">
 
       <div class="field-row">
         <div>
@@ -361,6 +364,24 @@ function formatDateRu(d) {
 
 function formatMoney(n) {
   return n.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function toDateInputValue(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+// Обратная операция к addMonthsClamped: число месяцев между датами. Если конечная
+// дата — последний день своего месяца, не занижаем счётчик из-за более короткого
+// месяца (иначе округление "убегало" бы на месяц раньше, чем при прямом расчёте).
+function monthsBetweenDates(start, end) {
+  let months = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());
+  const endLastDay = new Date(end.getFullYear(), end.getMonth() + 1, 0).getDate();
+  const endIsMonthEnd = end.getDate() === endLastDay;
+  if (!endIsMonthEnd && end.getDate() < start.getDate()) months -= 1;
+  return months;
 }
 
 /* ===================== Календарь нерабочих дней РК ===================== */
@@ -605,6 +626,27 @@ function rebuildGraceTable(term) {
   renderGraceTable();
 }
 
+function parseDateField(id) {
+  const v = document.getElementById(id).value;
+  return v ? new Date(v + 'T00:00:00') : null;
+}
+
+function syncEndDateFromTerm() {
+  const issueDate = parseDateField('f-issue-date');
+  const term = parseInt(document.getElementById('f-term').value, 10);
+  if (!issueDate || !Number.isFinite(term)) return;
+  document.getElementById('f-end-date').value = toDateInputValue(addMonthsClamped(issueDate, term));
+}
+
+function syncTermFromEndDate() {
+  const issueDate = parseDateField('f-issue-date');
+  const endDate = parseDateField('f-end-date');
+  if (!issueDate || !endDate) return;
+  const term = Math.max(1, Math.min(60, monthsBetweenDates(issueDate, endDate)));
+  document.getElementById('f-term').value = term;
+  rebuildGraceTable(term);
+}
+
 function renderGraceTable() {
   const tbody = document.getElementById('grace-tbody');
   tbody.innerHTML = '';
@@ -742,10 +784,10 @@ function exportCSV() {
 /* ===================== Инициализация ===================== */
 
 function init() {
-  const todayStr = new Date().toISOString().slice(0, 10);
-  document.getElementById('f-issue-date').value = todayStr;
+  document.getElementById('f-issue-date').value = toDateInputValue(new Date());
 
   rebuildGraceTable(12);
+  syncEndDateFromTerm();
 
   document.getElementById('f-term').addEventListener('change', (e) => {
     let term = parseInt(e.target.value, 10);
@@ -753,7 +795,11 @@ function init() {
     term = Math.max(1, Math.min(60, term));
     e.target.value = term;
     rebuildGraceTable(term);
+    syncEndDateFromTerm();
   });
+
+  document.getElementById('f-end-date').addEventListener('change', syncTermFromEndDate);
+  document.getElementById('f-issue-date').addEventListener('change', syncEndDateFromTerm);
 
   document.getElementById('btn-calc').addEventListener('click', doCalculate);
   document.getElementById('btn-export').addEventListener('click', exportCSV);
