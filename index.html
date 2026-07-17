@@ -351,14 +351,13 @@
         <table id="schedule-table">
           <thead>
             <tr>
-              <th>№</th><th>Дата</th><th>Плановый ОД</th><th>Плановый %</th>
-              <th>Льгота ОД</th><th>Льгота %</th><th>Остаток на начало</th>
-              <th>Погашение ОД</th><th>% к уплате (итого)</th><th>Комиссия</th>
-              <th>Итоговый платёж</th><th>Остаток на конец</th>
+              <th>№</th><th>Дата</th><th>Остаток на начало</th>
+              <th>Погашение ОД</th><th>% к уплате (итого)</th><th>Добавка в пул</th><th>Доплата из пула</th>
+              <th>Комиссия</th><th>Итоговый платёж</th><th>Остаток на конец</th>
             </tr>
           </thead>
           <tbody id="schedule-tbody">
-            <tr><td colspan="12" class="empty-hint">Нажмите «Рассчитать», чтобы увидеть график</td></tr>
+            <tr><td colspan="10" class="empty-hint">Нажмите «Рассчитать», чтобы увидеть график</td></tr>
           </tbody>
         </table>
       </div>
@@ -875,13 +874,11 @@ function renderResults(result) {
     tr.innerHTML = `
       <td>${r.i}</td>
       <td>${dateHtml}</td>
-      <td>${r.dueOD ? '✓' : '—'}</td>
-      <td>${r.duePct ? '✓' : '—'}</td>
-      <td>${r.graceOD ? '✓' : '—'}</td>
-      <td>${r.gracePct ? '✓' : '—'}</td>
       <td>${formatMoney(r.balanceStart)}</td>
       <td>${formatMoney(r.principal)}</td>
       <td>${formatMoney(r.totalInterest)}</td>
+      <td>${formatMoney(r.poolAdd)}</td>
+      <td>${formatMoney(r.distribution)}</td>
       <td>${formatMoney(r.fee)}</td>
       <td>${formatMoney(r.totalPayment)}</td>
       <td>${formatMoney(r.balanceEnd)}</td>
@@ -900,7 +897,7 @@ function doCalculate() {
     document.getElementById('btn-export').disabled = true;
     document.getElementById('gesv-value').textContent = '—';
     document.querySelectorAll('.tile').forEach(t => { t.classList.remove('ok', 'bad'); t.querySelector('.tile-value').textContent = '—'; });
-    document.getElementById('schedule-tbody').innerHTML = '<tr><td colspan="12" class="empty-hint">Нажмите «Рассчитать», чтобы увидеть график</td></tr>';
+    document.getElementById('schedule-tbody').innerHTML = '<tr><td colspan="10" class="empty-hint">Нажмите «Рассчитать», чтобы увидеть график</td></tr>';
     return;
   }
   lastResult = result;
