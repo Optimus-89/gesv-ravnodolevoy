@@ -367,13 +367,30 @@ function formatMoney(n) {
   return n.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
+// Разбирает строку с пробелами-разделителями разрядов и запятой/точкой как
+// дробным разделителем (сотые) в число.
 function parseThousands(str) {
-  const digits = String(str).replace(/[^\d]/g, '');
-  return digits ? parseInt(digits, 10) : NaN;
+  const cleaned = String(str).replace(/[^\d.,]/g, '');
+  const sepIndex = cleaned.search(/[.,]/);
+  const normalized = sepIndex === -1
+    ? cleaned
+    : cleaned.slice(0, sepIndex) + '.' + cleaned.slice(sepIndex + 1).replace(/[.,]/g, '');
+  return normalized ? parseFloat(normalized) : NaN;
 }
 
-function formatThousands(num) {
-  return Number.isFinite(num) ? num.toLocaleString('ru-RU') : '';
+// Живое форматирование при вводе: целая часть — пробелами по разрядам, дробная
+// часть (сотые) сохраняется как есть, без принудительного дополнения нулями,
+// чтобы не мешать набору текста.
+function formatAmountInput(str) {
+  const cleaned = String(str).replace(/[^\d.,]/g, '');
+  const sepIndex = cleaned.search(/[.,]/);
+  if (sepIndex === -1) {
+    return cleaned ? parseInt(cleaned, 10).toLocaleString('ru-RU') : '';
+  }
+  const intPart = cleaned.slice(0, sepIndex);
+  const decPart = cleaned.slice(sepIndex + 1).replace(/[.,]/g, '').slice(0, 2);
+  const intFormatted = intPart ? parseInt(intPart, 10).toLocaleString('ru-RU') : '';
+  return `${intFormatted},${decPart}`;
 }
 
 // Живое форматирование пробелами по разрядам без "прыжков" курсора: считаем
@@ -382,7 +399,7 @@ function formatThousands(num) {
 function attachThousandsFormatting(input) {
   input.addEventListener('input', () => {
     const cursorFromEnd = input.value.length - input.selectionStart;
-    const formatted = formatThousands(parseThousands(input.value));
+    const formatted = formatAmountInput(input.value);
     input.value = formatted;
     const pos = Math.max(0, formatted.length - cursorFromEnd);
     input.setSelectionRange(pos, pos);
