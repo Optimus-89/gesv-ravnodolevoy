@@ -916,7 +916,7 @@ function exportExcel() {
   if (!lastResult) return;
   const headers = ['№ платежа','Дата','Плановый ОД','Плановый %','Льгота ОД','Льгота %','Остаток на начало',
     'Погашение ОД','Начислено %','% к уплате (итого)','Начисленные проценты за ЛП','Распределение процентов за ЛП',
-    'Пул на конец','Бакет на конец','Комиссия','Итоговый платёж','Остаток на конец'];
+    'Комиссия','Итоговый платёж','Остаток на конец'];
 
   const xlNum = (v) => Number(v.toFixed(6));
   const numCell = (v, grace) => `<Cell ss:StyleID="${grace ? 'graceNum' : 'num'}"><Data ss:Type="Number">${xlNum(v)}</Data></Cell>`;
@@ -941,8 +941,6 @@ function exportExcel() {
       numCell(r.totalInterest, grace),
       numCell(r.poolAdd, grace),
       numCell(r.distribution, grace),
-      numCell(r.poolEnd, grace),
-      numCell(r.bucketEnd, grace),
       numCell(r.fee, grace),
       numCell(r.totalPayment, grace),
       numCell(r.balanceEnd, grace),
