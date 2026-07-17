@@ -914,7 +914,7 @@ function escapeXml(s) {
 // проблем CSV с разделителем ";"/"," при разных региональных настройках.
 function exportExcel() {
   if (!lastResult) return;
-  const headers = ['№ платежа','Дата','Плановый ОД','Плановый %','Льгота ОД','Льгота %','Остаток на начало',
+  const headers = ['№ платежа','Дата','Остаток на начало',
     'Погашение ОД','Начислено %','% к уплате (итого)','Начисленные проценты за ЛП','Распределение процентов за ЛП',
     'Комиссия','Итоговый платёж','Остаток на конец'];
 
@@ -931,10 +931,6 @@ function exportExcel() {
     return '<Row>' + [
       intCell(r.i, grace),
       strCell(dateStr, grace),
-      intCell(r.dueOD ? 1 : 0, grace),
-      intCell(r.duePct ? 1 : 0, grace),
-      intCell(r.graceOD ? 1 : 0, grace),
-      intCell(r.gracePct ? 1 : 0, grace),
       numCell(r.balanceStart, grace),
       numCell(r.principal, grace),
       numCell(r.interestAccrued, grace),
