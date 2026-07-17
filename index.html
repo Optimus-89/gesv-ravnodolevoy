@@ -279,7 +279,7 @@
       </div>
       <div class="btn-row">
         <button class="btn-primary" id="btn-calc">Рассчитать</button>
-        <button class="btn-secondary" id="btn-export" disabled>Экспорт CSV</button>
+        <button class="btn-secondary" id="btn-export" disabled>Экспорт в Excel</button>
       </div>
     </div>
   </div>
@@ -792,27 +792,71 @@ function doCalculate() {
   renderResults(result);
 }
 
-function exportCSV() {
+function escapeXml(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+// Формат SpreadsheetML 2003 (плоский XML) — открывается в Excel как полноценная
+// книга с типизированными числовыми ячейками, без внешних библиотек и без
+// проблем CSV с разделителем ";"/"," при разных региональных настройках.
+function exportExcel() {
   if (!lastResult) return;
-  const num = (n) => n.toFixed(2).replace('.', ',');
-  const header = ['№ платежа','Дата','Плановый ОД','Плановый %','Льгота ОД','Льгота %','Остаток на начало',
+  const headers = ['№ платежа','Дата','Плановый ОД','Плановый %','Льгота ОД','Льгота %','Остаток на начало',
     'Погашение ОД','Начислено %','% к уплате (итого)','Добавка в пул','Доплата из пула',
     'Пул на конец','Бакет на конец','Комиссия','Итоговый платёж','Остаток на конец'];
-  const lines = [header.join(';')];
-  for (const r of lastResult.rows) {
-    lines.push([
-      r.i, formatDateRu(r.date) + (r.adjusted ? ' (перенесена)' : ''),
-      r.dueOD ? 1 : 0, r.duePct ? 1 : 0, r.graceOD ? 1 : 0, r.gracePct ? 1 : 0,
-      num(r.balanceStart), num(r.principal), num(r.interestAccrued), num(r.totalInterest),
-      num(r.poolAdd), num(r.distribution), num(r.poolEnd), num(r.bucketEnd),
-      num(r.fee), num(r.totalPayment), num(r.balanceEnd),
-    ].join(';'));
-  }
-  const csv = '﻿' + lines.join('\r\n');
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+
+  const xlNum = (v) => Number(v.toFixed(6));
+  const numCell = (v, grace) => `<Cell ss:StyleID="${grace ? 'graceNum' : 'num'}"><Data ss:Type="Number">${xlNum(v)}</Data></Cell>`;
+  const intCell = (v, grace) => `<Cell${grace ? ' ss:StyleID="grace"' : ''}><Data ss:Type="Number">${v}</Data></Cell>`;
+  const strCell = (v, grace) => `<Cell${grace ? ' ss:StyleID="grace"' : ''}><Data ss:Type="String">${escapeXml(v)}</Data></Cell>`;
+
+  const headerRow = `<Row>${headers.map(h => `<Cell ss:StyleID="header"><Data ss:Type="String">${escapeXml(h)}</Data></Cell>`).join('')}</Row>`;
+
+  const bodyRows = lastResult.rows.map(r => {
+    const grace = r.graceOD || r.gracePct;
+    const dateStr = formatDateRu(r.date) + (r.adjusted ? ' (перенесена)' : '');
+    return '<Row>' + [
+      intCell(r.i, grace),
+      strCell(dateStr, grace),
+      intCell(r.dueOD ? 1 : 0, grace),
+      intCell(r.duePct ? 1 : 0, grace),
+      intCell(r.graceOD ? 1 : 0, grace),
+      intCell(r.gracePct ? 1 : 0, grace),
+      numCell(r.balanceStart, grace),
+      numCell(r.principal, grace),
+      numCell(r.interestAccrued, grace),
+      numCell(r.totalInterest, grace),
+      numCell(r.poolAdd, grace),
+      numCell(r.distribution, grace),
+      numCell(r.poolEnd, grace),
+      numCell(r.bucketEnd, grace),
+      numCell(r.fee, grace),
+      numCell(r.totalPayment, grace),
+      numCell(r.balanceEnd, grace),
+    ].join('') + '</Row>';
+  }).join('');
+
+  const xml = '<?xml version="1.0" encoding="UTF-8"?>\r\n'
+    + '<?mso-application progid="Excel.Sheet"?>\r\n'
+    + '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" '
+    + 'xmlns:o="urn:schemas-microsoft-com:office:office" '
+    + 'xmlns:x="urn:schemas-microsoft-com:office:excel" '
+    + 'xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">\r\n'
+    + '<Styles>\r\n'
+    + '<Style ss:ID="header"><Font ss:Bold="1"/><Interior ss:Color="#F0F3F6" ss:Pattern="Solid"/></Style>\r\n'
+    + '<Style ss:ID="grace"><Interior ss:Color="#FFF8E0" ss:Pattern="Solid"/></Style>\r\n'
+    + '<Style ss:ID="num"><NumberFormat ss:Format="#,##0.00"/></Style>\r\n'
+    + '<Style ss:ID="graceNum"><Interior ss:Color="#FFF8E0" ss:Pattern="Solid"/><NumberFormat ss:Format="#,##0.00"/></Style>\r\n'
+    + '</Styles>\r\n'
+    + '<Worksheet ss:Name="График"><Table>\r\n'
+    + headerRow + '\r\n' + bodyRows
+    + '\r\n</Table></Worksheet>\r\n'
+    + '</Workbook>';
+
+  const blob = new Blob([xml], { type: 'application/vnd.ms-excel;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url; a.download = 'gesv_grafik.csv';
+  a.href = url; a.download = 'gesv_grafik.xls';
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
@@ -841,7 +885,7 @@ function init() {
   document.getElementById('f-issue-date').addEventListener('change', syncEndDateFromTerm);
 
   document.getElementById('btn-calc').addEventListener('click', doCalculate);
-  document.getElementById('btn-export').addEventListener('click', exportCSV);
+  document.getElementById('btn-export').addEventListener('click', exportExcel);
 }
 
 init();
