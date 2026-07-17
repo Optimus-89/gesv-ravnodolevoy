@@ -988,7 +988,7 @@ function exportExcel() {
   const headers = ['№ платежа','Дата','Остаток на начало',
     'Погашение ОД','Начислено %','% к уплате (итого)','Начисленные проценты за ЛП','Распределение процентов за ЛП',
     'Комиссия','Итоговый платёж','Остаток на конец'];
-  const headerRow = `<Row ss:AutoFitHeight="0" ss:Height="13.5">${headers.map(h => `<Cell ss:StyleID="header"><Data ss:Type="String">${escapeXml(h)}</Data></Cell>`).join('')}</Row>`;
+  const headerRow = `<Row>${headers.map(h => `<Cell ss:StyleID="header"><Data ss:Type="String">${escapeXml(h)}</Data></Cell>`).join('')}</Row>`;
 
   // ---- Строка выдачи (t=0), перед первым месяцем графика ----
   const d = lastResult.disbursement;
@@ -1024,7 +1024,7 @@ function exportExcel() {
     + '<Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#DDE3E9"/>'
     + '<Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#DDE3E9"/></Borders>';
 
-  const columns = [230, 150, 105, 140, 95, 110, 155, 165, 85, 105, 105]
+  const columns = [230, 150, 85, 80, 75, 80, 80, 80, 65, 85, 85]
     .map(w => `<Column ss:Width="${w}"/>`).join('');
 
   const xml = '<?xml version="1.0" encoding="UTF-8"?>\r\n'
@@ -1034,7 +1034,7 @@ function exportExcel() {
     + 'xmlns:x="urn:schemas-microsoft-com:office:excel" '
     + 'xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">\r\n'
     + '<Styles>\r\n'
-    + `<Style ss:ID="header"><Font ss:Bold="1" ss:Size="9"/><Interior ss:Color="#F0F3F6" ss:Pattern="Solid"/>${border}</Style>\r\n`
+    + `<Style ss:ID="header"><Font ss:Bold="1" ss:Size="9"/><Interior ss:Color="#F0F3F6" ss:Pattern="Solid"/><Alignment ss:Horizontal="Center" ss:Vertical="Center" ss:WrapText="1"/>${border}</Style>\r\n`
     + `<Style ss:ID="grace"><Interior ss:Color="#FFF8E0" ss:Pattern="Solid"/>${border}</Style>\r\n`
     + `<Style ss:ID="num"><NumberFormat ss:Format="#,##0.00"/>${border}</Style>\r\n`
     + `<Style ss:ID="graceNum"><Interior ss:Color="#FFF8E0" ss:Pattern="Solid"/><NumberFormat ss:Format="#,##0.00"/>${border}</Style>\r\n`
