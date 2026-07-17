@@ -246,9 +246,10 @@
       <select id="f-pool-method">
         <option value="nearest" selected>Первый предстоящий платеж</option>
         <option value="all">Все предстоящие платежи</option>
+        <option value="untilNextGrace">До следующего льготного периода</option>
         <option value="manual">Ручное распределение</option>
       </select>
-      <div class="field-note">«Ручное распределение»: вес, % — доля от <b>текущего</b> остатка пула, списываемая в этом месяце. На последней оставшейся дате уплаты % остаток пула списывается полностью автоматически.</div>
+      <div class="field-note">«До следующего льготного периода»: пул равномерно распределяется на платежи до начала следующей льготы по %, а не до конца срока. «Ручное распределение»: вес, % — доля от <b>текущего</b> остатка пула, списываемая в этом месяце. На последней оставшейся дате уплаты % остаток пула списывается полностью автоматически.</div>
 
       <fieldset>
         <legend>Комиссии</legend>
@@ -565,9 +566,13 @@ function generateSchedule(p) {
   // Суффиксные суммы: сколько ещё не-льготных due-дат осталось, включая текущую
   const remainingOD = new Array(N + 2).fill(0);
   const remainingPct = new Array(N + 2).fill(0);
+  // Тот же суффикс, но "обнуляется" на льготном месяце — даёт количество платежей
+  // от текущей даты до начала следующего льготного периода по % (не считая его).
+  const remainingPctLocal = new Array(N + 2).fill(0);
   for (let i = N; i >= 1; i--) {
     remainingOD[i] = remainingOD[i + 1] + ((dueOD[i] && !graceOD[i]) ? 1 : 0);
     remainingPct[i] = remainingPct[i + 1] + ((duePct[i] && !gracePct[i]) ? 1 : 0);
+    remainingPctLocal[i] = gracePct[i] ? 0 : (duePct[i] ? 1 : 0) + remainingPctLocal[i + 1];
   }
 
   const rows = [];
@@ -595,6 +600,7 @@ function generateSchedule(p) {
     if (duePct[i] && !gracePct[i]) {
       if (p.poolMethod === 'nearest') distribution = poolStart;
       else if (p.poolMethod === 'all') distribution = remainingPct[i] > 0 ? poolStart / remainingPct[i] : 0;
+      else if (p.poolMethod === 'untilNextGrace') distribution = remainingPctLocal[i] > 0 ? poolStart / remainingPctLocal[i] : 0;
       else if (p.poolMethod === 'manual') distribution = remainingPct[i] === 1 ? poolStart : poolStart * weight[i];
     }
     const poolEnd = poolStart + poolAdd - distribution;
