@@ -254,7 +254,7 @@
         <option value="untilNextGrace">До следующего льготного периода</option>
         <option value="manual">Ручное распределение</option>
       </select>
-      <div class="field-note">«До следующего льготного периода»: пул равномерно распределяется на платежи до начала следующей льготы по %, а не до конца срока. «Ручное распределение»: вес, % — доля от <b>текущего</b> остатка пула, списываемая в этом месяце. На последней оставшейся дате уплаты % остаток пула списывается полностью автоматически.</div>
+      <div class="field-note">«До следующего льготного периода»: пул равномерно распределяется на платежи до начала следующей льготы по %, а не до конца срока. «Ручное распределение»: вес, % — доля от <b>суммы, накопленной за этот льготный период</b> (100% = вся отложенная за льготу сумма), а не от текущего остатка. Например, 50% — это половина от изначально накопленного, 20% — пятая часть. На последней оставшейся дате уплаты % остаток пула списывается полностью автоматически.</div>
 
       <fieldset>
         <legend>Комиссии</legend>
@@ -674,7 +674,7 @@ function generateSchedule(p) {
   }
 
   const rows = [];
-  let balance = p.amount, bucket = 0, pool = 0, sumPrincipal = 0, lastPctDueIndex = 0;
+  let balance = p.amount, bucket = 0, pool = 0, poolPeak = 0, sumPrincipal = 0, lastPctDueIndex = 0;
 
   for (let i = 1; i <= N; i++) {
     const balanceStart = balance;
@@ -695,14 +695,21 @@ function generateSchedule(p) {
     const bucketEnd = (duePct[i] || gracePct[i]) ? 0 : amountReady;
 
     const poolStart = pool;
+    // Пока идёт льгота, пул только растёт — "пик" за текущий (ещё не выплаченный)
+    // льготный период и есть те самые 100%, от которых берётся вес в "Ручном
+    // распределении". Как только пул полностью выплачен, пик обнуляется, и
+    // следующий льготный период накапливает свои собственные 100% с нуля.
+    if (gracePct[i]) poolPeak = poolStart + poolAdd;
+
     let distribution = 0;
     if (duePct[i] && !gracePct[i]) {
       if (p.poolMethod === 'nearest') distribution = poolStart;
       else if (p.poolMethod === 'all') distribution = remainingPct[i] > 0 ? poolStart / remainingPct[i] : 0;
       else if (p.poolMethod === 'untilNextGrace') distribution = remainingPctLocal[i] > 0 ? poolStart / remainingPctLocal[i] : 0;
-      else if (p.poolMethod === 'manual') distribution = remainingPct[i] === 1 ? poolStart : poolStart * weight[i];
+      else if (p.poolMethod === 'manual') distribution = remainingPct[i] === 1 ? poolStart : Math.min(poolStart, poolPeak * weight[i]);
     }
     const poolEnd = poolStart + poolAdd - distribution;
+    if (poolEnd < 1e-6) poolPeak = 0;
 
     const fee = 0;
     const totalInterest = interestPaid + distribution;
