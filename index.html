@@ -932,40 +932,40 @@ function exportExcel() {
   const strCell = (v, grace) => `<Cell ss:StyleID="${grace ? 'grace' : 'text'}"><Data ss:Type="String">${escapeXml(v)}</Data></Cell>`;
   const dashCell = () => `<Cell ss:StyleID="text"><Data ss:Type="String">—</Data></Cell>`;
 
-  // ---- Блок с параметрами кредита и результатами (над графиком) ----
-  const infoRows = [];
-  infoRows.push({ title: 'Параметры кредита' });
-  infoRows.push({ label: 'Сумма кредита', value: p.amount, type: 'num' });
-  infoRows.push({ label: 'Ставка, % годовых', value: p.ratePct, type: 'num' });
+  // ---- Параметры кредита (слева) и результаты расчёта (справа), в одной строке друг с другом ----
+  const leftRows = [];
+  leftRows.push({ title: 'Параметры кредита' });
+  leftRows.push({ label: 'Сумма кредита', value: p.amount, type: 'num' });
+  leftRows.push({ label: 'Ставка, % годовых', value: p.ratePct, type: 'num' });
   if (p.rate2Date && p.rate2Pct) {
-    infoRows.push({ label: 'Вторая ставка, % годовых', value: p.rate2Pct, type: 'num' });
-    infoRows.push({ label: 'Дата второй ставки', value: formatDateRu(p.rate2Date), type: 'str' });
+    leftRows.push({ label: 'Вторая ставка, % годовых', value: p.rate2Pct, type: 'num' });
+    leftRows.push({ label: 'Дата второй ставки', value: formatDateRu(p.rate2Date), type: 'str' });
   }
   if (p.rate3Date && p.rate3Pct) {
-    infoRows.push({ label: 'Третья ставка, % годовых', value: p.rate3Pct, type: 'num' });
-    infoRows.push({ label: 'Дата третьей ставки', value: formatDateRu(p.rate3Date), type: 'str' });
+    leftRows.push({ label: 'Третья ставка, % годовых', value: p.rate3Pct, type: 'num' });
+    leftRows.push({ label: 'Дата третьей ставки', value: formatDateRu(p.rate3Date), type: 'str' });
   }
-  infoRows.push({ label: 'Дата выдачи', value: formatDateRu(p.issueDate), type: 'str' });
-  infoRows.push({ label: 'Дата окончания кредита', value: formatDateRu(addMonthsClamped(p.issueDate, p.termMonths)), type: 'str' });
-  infoRows.push({ label: 'Срок, мес.', value: p.termMonths, type: 'num' });
-  infoRows.push({ label: 'База дней в году', value: p.baseDays, type: 'num' });
-  infoRows.push({ label: 'Периодичность погашения ОД', value: labels.odPeriodicity, type: 'str' });
-  infoRows.push({ label: 'Периодичность погашения %', value: labels.pctPeriodicity, type: 'str' });
-  infoRows.push({ label: 'Способ распределения пула %', value: labels.poolMethod, type: 'str' });
-  infoRows.push({ label: 'Комиссия за выдачу, %', value: p.feePct, type: 'num' });
-  infoRows.push({ label: 'Комиссия за выдачу, фикс.', value: p.feeFix, type: 'num' });
-  infoRows.push({ blank: true });
-  infoRows.push({ title: 'Результаты расчёта' });
-  infoRows.push({ label: 'ГЭСВ', value: lastResult.gesv, type: 'pct' });
-  infoRows.push({ label: 'Погашено ОД', value: checks.sumPrincipal, type: 'num' });
-  infoRows.push({ label: 'Остаток пула', value: checks.poolEnd, type: 'num' });
-  infoRows.push({ label: 'Остаток бакета', value: checks.bucketEnd, type: 'num' });
-  infoRows.push({ label: 'Остаток долга', value: checks.balanceEnd, type: 'num' });
-  infoRows.push({ blank: true });
+  leftRows.push({ label: 'Дата выдачи', value: formatDateRu(p.issueDate), type: 'str' });
+  leftRows.push({ label: 'Дата окончания кредита', value: formatDateRu(addMonthsClamped(p.issueDate, p.termMonths)), type: 'str' });
+  leftRows.push({ label: 'Срок, мес.', value: p.termMonths, type: 'num' });
+  leftRows.push({ label: 'База дней в году', value: p.baseDays, type: 'num' });
+  leftRows.push({ label: 'Периодичность погашения ОД', value: labels.odPeriodicity, type: 'str' });
+  leftRows.push({ label: 'Периодичность погашения %', value: labels.pctPeriodicity, type: 'str' });
+  leftRows.push({ label: 'Способ распределения пула %', value: labels.poolMethod, type: 'str' });
+  leftRows.push({ label: 'Комиссия за выдачу, %', value: p.feePct, type: 'num' });
+  leftRows.push({ label: 'Комиссия за выдачу, фикс.', value: p.feeFix, type: 'num' });
 
-  const infoXml = infoRows.map(row => {
-    if (row.blank) return '<Row></Row>';
-    if (row.title) return `<Row><Cell ss:StyleID="sectionHeader" ss:MergeAcross="1"><Data ss:Type="String">${escapeXml(row.title)}</Data></Cell></Row>`;
+  const rightRows = [];
+  rightRows.push({ title: 'Результаты расчёта' });
+  rightRows.push({ label: 'ГЭСВ', value: lastResult.gesv, type: 'pct' });
+  rightRows.push({ label: 'Погашено ОД', value: checks.sumPrincipal, type: 'num' });
+  rightRows.push({ label: 'Остаток пула', value: checks.poolEnd, type: 'num' });
+  rightRows.push({ label: 'Остаток бакета', value: checks.bucketEnd, type: 'num' });
+  rightRows.push({ label: 'Остаток долга', value: checks.balanceEnd, type: 'num' });
+
+  const infoCell = (row) => {
+    if (!row) return '<Cell/><Cell/>';
+    if (row.title) return `<Cell ss:StyleID="sectionHeader" ss:MergeAcross="1"><Data ss:Type="String">${escapeXml(row.title)}</Data></Cell>`;
     const valueCell = row.type === 'num'
       ? `<Cell ss:StyleID="value"><Data ss:Type="Number">${xlNum(row.value)}</Data></Cell>`
       : row.type === 'pct'
@@ -973,14 +973,22 @@ function exportExcel() {
           ? `<Cell ss:StyleID="value"><Data ss:Type="String">Ошибка расчёта</Data></Cell>`
           : `<Cell ss:StyleID="pctResult"><Data ss:Type="Number">${xlNum(row.value)}</Data></Cell>`)
         : `<Cell ss:StyleID="value"><Data ss:Type="String">${escapeXml(row.value)}</Data></Cell>`;
-    return `<Row><Cell ss:StyleID="label"><Data ss:Type="String">${escapeXml(row.label)}</Data></Cell>${valueCell}</Row>`;
-  }).join('\r\n');
+    return `<Cell ss:StyleID="label"><Data ss:Type="String">${escapeXml(row.label)}</Data></Cell>${valueCell}`;
+  };
 
-  // ---- Заголовок таблицы графика ----
+  const infoRowCount = Math.max(leftRows.length, rightRows.length);
+  const infoXmlRows = [];
+  for (let i = 0; i < infoRowCount; i++) {
+    infoXmlRows.push(`<Row>${infoCell(leftRows[i])}<Cell/>${infoCell(rightRows[i])}</Row>`);
+  }
+  infoXmlRows.push('<Row></Row>');
+  const infoXml = infoXmlRows.join('\r\n');
+
+  // ---- Заголовок таблицы графика (компактная строка) ----
   const headers = ['№ платежа','Дата','Остаток на начало',
     'Погашение ОД','Начислено %','% к уплате (итого)','Начисленные проценты за ЛП','Распределение процентов за ЛП',
     'Комиссия','Итоговый платёж','Остаток на конец'];
-  const headerRow = `<Row>${headers.map(h => `<Cell ss:StyleID="header"><Data ss:Type="String">${escapeXml(h)}</Data></Cell>`).join('')}</Row>`;
+  const headerRow = `<Row ss:AutoFitHeight="0" ss:Height="13.5">${headers.map(h => `<Cell ss:StyleID="header"><Data ss:Type="String">${escapeXml(h)}</Data></Cell>`).join('')}</Row>`;
 
   // ---- Строка выдачи (t=0), перед первым месяцем графика ----
   const d = lastResult.disbursement;
@@ -1011,14 +1019,12 @@ function exportExcel() {
     ].join('') + '</Row>';
   }).join('');
 
-  const freezeRowCount = infoRows.length + 1; // + сама строка заголовка таблицы
-
   const border = '<Borders><Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#DDE3E9"/>'
     + '<Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#DDE3E9"/>'
     + '<Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#DDE3E9"/>'
     + '<Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#DDE3E9"/></Borders>';
 
-  const columns = [230, 150, 105, 100, 95, 110, 155, 165, 85, 105, 105]
+  const columns = [230, 150, 105, 140, 95, 110, 155, 165, 85, 105, 105]
     .map(w => `<Column ss:Width="${w}"/>`).join('');
 
   const xml = '<?xml version="1.0" encoding="UTF-8"?>\r\n'
@@ -1028,7 +1034,7 @@ function exportExcel() {
     + 'xmlns:x="urn:schemas-microsoft-com:office:excel" '
     + 'xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">\r\n'
     + '<Styles>\r\n'
-    + `<Style ss:ID="header"><Font ss:Bold="1"/><Interior ss:Color="#F0F3F6" ss:Pattern="Solid"/>${border}</Style>\r\n`
+    + `<Style ss:ID="header"><Font ss:Bold="1" ss:Size="9"/><Interior ss:Color="#F0F3F6" ss:Pattern="Solid"/>${border}</Style>\r\n`
     + `<Style ss:ID="grace"><Interior ss:Color="#FFF8E0" ss:Pattern="Solid"/>${border}</Style>\r\n`
     + `<Style ss:ID="num"><NumberFormat ss:Format="#,##0.00"/>${border}</Style>\r\n`
     + `<Style ss:ID="graceNum"><Interior ss:Color="#FFF8E0" ss:Pattern="Solid"/><NumberFormat ss:Format="#,##0.00"/>${border}</Style>\r\n`
@@ -1042,11 +1048,6 @@ function exportExcel() {
     + columns + '\r\n'
     + infoXml + '\r\n' + headerRow + '\r\n' + disbursementRow + '\r\n' + bodyRows
     + '\r\n</Table>\r\n'
-    + '<WorksheetOptions xmlns="urn:schemas-microsoft-com:office:excel">\r\n'
-    + '<FreezePanes/><FrozenNoSplit/>\r\n'
-    + `<SplitHorizontal>${freezeRowCount}</SplitHorizontal><TopRowBottomPane>${freezeRowCount}</TopRowBottomPane>\r\n`
-    + '<ActivePane>2</ActivePane>\r\n'
-    + '</WorksheetOptions>\r\n'
     + '</Worksheet>\r\n'
     + '</Workbook>';
 
