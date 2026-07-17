@@ -280,6 +280,21 @@
         <div class="field-note">Начиная с указанной даты вторая ставка <b>заменяет</b> основную (используется вместо неё, а не добавляется к ней). Внутри периода, в который попадает эта дата, проценты считаются раздельно по дням до и после неё.</div>
       </fieldset>
 
+      <fieldset>
+        <legend>Третья ставка</legend>
+        <div class="field-row">
+          <div>
+            <label for="f-rate3-date">Дата третьей ставки</label>
+            <input type="date" id="f-rate3-date">
+          </div>
+          <div>
+            <label for="f-rate3-pct">Третья ставка, % годовых</label>
+            <input type="number" id="f-rate3-pct" value="0" min="0" step="0.1">
+          </div>
+        </div>
+        <div class="field-note">Работает так же, как вторая ставка: начиная с указанной даты третья ставка <b>заменяет</b> ту, что действовала до неё (основную или вторую). Проценты внутри периода переключения считаются раздельно по дням.</div>
+      </fieldset>
+
       <div class="error-block" id="error-block"></div>
     </div>
 
@@ -551,6 +566,7 @@ function validateInputs(p) {
   if (!(p.baseDays > 0)) return 'База расчёта дней в году должна быть больше нуля.';
   if (!(p.feePct >= 0) || !(p.feeFix >= 0)) return 'Комиссии не могут быть отрицательными.';
   if (!(p.rate2Pct >= 0)) return 'Вторая ставка не может быть отрицательной.';
+  if (!(p.rate3Pct >= 0)) return 'Третья ставка не может быть отрицательной.';
   for (const m of p.months) {
     if (!(m.weight >= 0) || !(m.weight <= 100)) return 'Вес ручного распределения должен быть от 0 до 100%.';
   }
@@ -565,6 +581,40 @@ function generateSchedule(p) {
   const rate = p.ratePct / 100;
   const rate2 = (p.rate2Pct || 0) / 100;
   const rate2Date = p.rate2Date;
+  const rate3 = (p.rate3Pct || 0) / 100;
+  const rate3Date = p.rate3Date;
+
+  // Хронологический список ставок: базовая всегда активна с начала, вторая/третья
+  // подключаются только если заданы и дата, и ненулевое значение. Порядок по дате
+  // определяет, какая ставка действует в каждый момент времени (более поздняя
+  // дата переключения побеждает независимо от порядка ввода полей).
+  const rateSwitches = [{ date: null, rate }];
+  if (rate2Date && rate2 !== 0) rateSwitches.push({ date: rate2Date, rate: rate2 });
+  if (rate3Date && rate3 !== 0) rateSwitches.push({ date: rate3Date, rate: rate3 });
+  rateSwitches.sort((a, b) => (a.date === null ? -Infinity : a.date) - (b.date === null ? -Infinity : b.date));
+
+  function rateActiveAt(date) {
+    let active = rateSwitches[0].rate;
+    for (const s of rateSwitches) if (s.date === null || s.date <= date) active = s.rate;
+    return active;
+  }
+
+  // Начисленные проценты за период, раздельно по дням для каждого отрезка между
+  // точками переключения ставки, попадающими внутрь периода.
+  function accrueInterest(balanceStart, periodStart, periodEnd) {
+    const boundaries = [periodStart];
+    for (const s of rateSwitches) if (s.date && s.date > periodStart && s.date < periodEnd) boundaries.push(s.date);
+    boundaries.push(periodEnd);
+    boundaries.sort((a, b) => a - b);
+    let weighted = 0;
+    for (let k = 0; k < boundaries.length - 1; k++) {
+      const segStart = boundaries[k], segEnd = boundaries[k + 1];
+      const days = daysBetween(segStart, segEnd);
+      if (days <= 0) continue;
+      weighted += rateActiveAt(segStart) * days;
+    }
+    return balanceStart / p.baseDays * weighted;
+  }
   const feePctFrac = p.feePct / 100;
 
   const minYear = p.issueDate.getFullYear() - 1;
@@ -622,19 +672,7 @@ function generateSchedule(p) {
 
     const periodStart = monthDates[i - 1];
     const periodEnd = monthDates[i];
-    const daysInPeriod = daysBetween(periodStart, periodEnd);
-
-    // Вторая ставка заменяет основную начиная с заданной даты; если эта дата
-    // попадает внутрь периода, проценты считаются раздельно по дням до и после неё.
-    let interestAccrued;
-    if (rate2Date && rate2 !== 0 && rate2Date < periodEnd) {
-      const switchPoint = rate2Date > periodStart ? rate2Date : periodStart;
-      const daysAtBase = daysBetween(periodStart, switchPoint);
-      const daysAtCombined = daysInPeriod - daysAtBase;
-      interestAccrued = balanceStart / p.baseDays * (rate * daysAtBase + rate2 * daysAtCombined);
-    } else {
-      interestAccrued = balanceStart * rate / p.baseDays * daysInPeriod;
-    }
+    const interestAccrued = accrueInterest(balanceStart, periodStart, periodEnd);
     const bucketStart = bucket;
     const amountReady = bucketStart + interestAccrued;
 
@@ -773,6 +811,8 @@ function readParams() {
     feeFix: parseFloat(document.getElementById('f-fee-fix').value),
     rate2Date: parseDateField('f-rate2-date'),
     rate2Pct: parseFloat(document.getElementById('f-rate2-pct').value) || 0,
+    rate3Date: parseDateField('f-rate3-date'),
+    rate3Pct: parseFloat(document.getElementById('f-rate3-pct').value) || 0,
     months: monthsState,
   };
 }
