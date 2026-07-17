@@ -648,6 +648,20 @@ function rebuildGraceTable(term) {
   renderGraceTable();
 }
 
+// Родной попап <input type=date> рисуется браузером и недоступен для скриптов
+// страницы, поэтому прокрутка меняет месяц прямо в закрытом поле: вверх — вперёд,
+// вниз — назад, с переносом на конец месяца при необходимости (см. addMonthsClamped).
+function attachMonthScroll(input) {
+  input.addEventListener('wheel', (e) => {
+    const current = parseDateField(input.id);
+    if (!current) return;
+    e.preventDefault();
+    const delta = e.deltaY < 0 ? 1 : -1;
+    input.value = toDateInputValue(addMonthsClamped(current, delta));
+    input.dispatchEvent(new Event('change'));
+  }, { passive: false });
+}
+
 function parseDateField(id) {
   const v = document.getElementById(id).value;
   return v ? new Date(v + 'T00:00:00') : null;
@@ -808,6 +822,8 @@ function exportCSV() {
 function init() {
   document.getElementById('f-issue-date').value = toDateInputValue(new Date());
   attachThousandsFormatting(document.getElementById('f-amount'));
+  attachMonthScroll(document.getElementById('f-issue-date'));
+  attachMonthScroll(document.getElementById('f-end-date'));
 
   rebuildGraceTable(12);
   syncEndDateFromTerm();
