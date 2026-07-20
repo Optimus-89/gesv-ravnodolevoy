@@ -665,7 +665,10 @@ function generateSchedule(p) {
   const monthDates = [p.issueDate];
   const wasAdjusted = [false];
   for (let i = 1; i <= N; i++) {
-    const raw = addMonthsClamped(p.issueDate, i, p.paymentDay);
+    // Дата окончания (последний месяц срока) всегда привязана к дню даты
+    // выдачи и не сдвигается днём платежа — тот применяется только к
+    // промежуточным датам графика.
+    const raw = i === N ? addMonthsClamped(p.issueDate, i) : addMonthsClamped(p.issueDate, i, p.paymentDay);
     const adj = nextWorkday(raw, calendar.isNonWorking);
     monthDates.push(adj);
     wasAdjusted.push(adj.getTime() !== raw.getTime());
