@@ -704,20 +704,53 @@ function generateSchedule(p) {
     remainingPctLocal[i] = gracePct[i] ? 0 : (duePct[i] ? 1 : 0) + remainingPctLocal[i + 1];
   }
 
+  // Начисление процентов + бакет (перенос % между не совпадающими датами ОД/%)
+  // + пул (льгота по %) за один период — вынесено в отдельную функцию, чтобы
+  // решатель аннуитетного платежа мог "проиграть" ровно ту же логику вперёд по
+  // локальной копии состояния, не трогая реальный расчёт.
+  function stepInterest(state, i, balanceStart) {
+    const interestAccrued = accrueInterest(balanceStart, monthDates[i - 1], monthDates[i]);
+    const bucketStart = state.bucket;
+    const amountReady = bucketStart + interestAccrued;
+
+    let interestPaid = 0, poolAdd = 0;
+    if (duePct[i] && !gracePct[i]) interestPaid = amountReady;
+    else if (gracePct[i]) poolAdd = amountReady;
+    const bucketEnd = (duePct[i] || gracePct[i]) ? 0 : amountReady;
+
+    const poolStart = state.pool;
+    if (gracePct[i]) state.poolPeak = poolStart + poolAdd;
+
+    let distribution = 0;
+    if (duePct[i] && !gracePct[i]) {
+      if (p.poolMethod === 'nearest') distribution = poolStart;
+      else if (p.poolMethod === 'all') distribution = remainingPct[i] > 0 ? poolStart / remainingPct[i] : 0;
+      else if (p.poolMethod === 'untilNextGrace') distribution = remainingPctLocal[i] > 0 ? poolStart / remainingPctLocal[i] : 0;
+      else if (p.poolMethod === 'manual') distribution = remainingPct[i] === 1 ? poolStart : Math.min(poolStart, state.poolPeak * weight[i]);
+    }
+    const poolEnd = poolStart + poolAdd - distribution;
+    if (poolEnd < 1e-6) state.poolPeak = 0;
+
+    state.bucket = bucketEnd;
+    state.pool = poolEnd;
+
+    return { interestAccrued, interestPaid, poolAdd, bucketEnd, distribution, poolEnd, totalInterest: interestPaid + distribution };
+  }
+
   // Аннуитет: подбираем константный платёж X (методом бисекции, как для ГЭСВ),
-  // при котором «X минус проценты за период» на каждой не-льготной дате ОД от
-  // startIndex до конца срока обнуляет остаток. Дни в периодах могут отличаться
-  // от периода к периоду, поэтому закрытой формулы нет — решаем численно.
-  // Используем те же начисления процентов, что и основной график (accrueInterest,
-  // с учётом второй/третьей ставки): решение "видит" будущую смену ставки заранее
-  // и один и тот же платёж действует по всему сроку без скачка на границе смены
-  // ставки — платёж выравнивается по всему графику.
-  function solveAnnuityPayment(startBalance, startIndex) {
+  // при котором «X минус фактически уплаченные проценты за период» на каждой
+  // не-льготной дате ОД от startIndex до конца срока обнуляет остаток. Проценты
+  // считаются через ту же stepInterest, что и основной цикл (с учётом бакета
+  // между несовпадающими датами ОД/% и пула по льготе %) — поэтому платёж
+  // остаётся одинаковым по всему графику: и при разной периодичности ОД/%,
+  // и при известной заранее льготе, и при смене ставки (2-я/3-я).
+  function solveAnnuityPayment(startBalance, startIndex, bucketAtStart, poolAtStart, poolPeakAtStart) {
     const simulateFinalBalance = (X) => {
       let bal = startBalance;
+      const state = { bucket: bucketAtStart, pool: poolAtStart, poolPeak: poolPeakAtStart };
       for (let j = startIndex; j <= N; j++) {
-        if (!dueOD[j] || graceOD[j]) continue;
-        bal -= (X - accrueInterest(bal, monthDates[j - 1], monthDates[j]));
+        const { totalInterest } = stepInterest(state, j, bal);
+        if (dueOD[j] && !graceOD[j]) bal -= (X - totalInterest);
       }
       return bal;
     };
@@ -737,15 +770,21 @@ function generateSchedule(p) {
   }
 
   const rows = [];
-  let balance = p.amount, bucket = 0, pool = 0, poolPeak = 0, sumPrincipal = 0, lastPctDueIndex = 0;
+  let balance = p.amount, sumPrincipal = 0, lastPctDueIndex = 0;
+  const state = { bucket: 0, pool: 0, poolPeak: 0 };
   let annuityX = 0, needsResolve = true;
 
   for (let i = 1; i <= N; i++) {
     const balanceStart = balance;
 
-    const periodStart = monthDates[i - 1];
-    const periodEnd = monthDates[i];
-    const interestAccrued = accrueInterest(balanceStart, periodStart, periodEnd);
+    // Резолвим аннуитетный платёж до начисления процентов этого периода — по
+    // состоянию бакета/пула на начало периода, как при реальном расчёте.
+    if (p.method === 'annuity' && needsResolve && dueOD[i] && !graceOD[i] && remainingOD[i] > 1) {
+      annuityX = solveAnnuityPayment(balanceStart, i, state.bucket, state.pool, state.poolPeak);
+      needsResolve = false;
+    }
+
+    const { interestAccrued, interestPaid, poolAdd, bucketEnd, distribution, poolEnd, totalInterest } = stepInterest(state, i, balanceStart);
 
     // Вес ОД — сумма (не доля), направляемая на погашение в этом месяце (0 =
     // распределение остатка согласно типу графика: равными долями или
@@ -760,8 +799,7 @@ function generateSchedule(p) {
         principal = Math.min(balanceStart, weightOD[i]);
         needsResolve = true; // остаток отклонился от плановой траектории аннуитета
       } else if (p.method === 'annuity') {
-        if (needsResolve) { annuityX = solveAnnuityPayment(balanceStart, i); needsResolve = false; }
-        principal = Math.max(0, Math.min(balanceStart, annuityX - interestAccrued));
+        principal = Math.max(0, Math.min(balanceStart, annuityX - totalInterest));
       } else {
         principal = balanceStart / remainingOD[i];
       }
@@ -770,33 +808,7 @@ function generateSchedule(p) {
     }
     const balanceEnd = balanceStart - principal;
 
-    const bucketStart = bucket;
-    const amountReady = bucketStart + interestAccrued;
-
-    let interestPaid = 0, poolAdd = 0;
-    if (duePct[i] && !gracePct[i]) interestPaid = amountReady;
-    else if (gracePct[i]) poolAdd = amountReady;
-    const bucketEnd = (duePct[i] || gracePct[i]) ? 0 : amountReady;
-
-    const poolStart = pool;
-    // Пока идёт льгота, пул только растёт — "пик" за текущий (ещё не выплаченный)
-    // льготный период и есть те самые 100%, от которых берётся вес в "Ручном
-    // распределении". Как только пул полностью выплачен, пик обнуляется, и
-    // следующий льготный период накапливает свои собственные 100% с нуля.
-    if (gracePct[i]) poolPeak = poolStart + poolAdd;
-
-    let distribution = 0;
-    if (duePct[i] && !gracePct[i]) {
-      if (p.poolMethod === 'nearest') distribution = poolStart;
-      else if (p.poolMethod === 'all') distribution = remainingPct[i] > 0 ? poolStart / remainingPct[i] : 0;
-      else if (p.poolMethod === 'untilNextGrace') distribution = remainingPctLocal[i] > 0 ? poolStart / remainingPctLocal[i] : 0;
-      else if (p.poolMethod === 'manual') distribution = remainingPct[i] === 1 ? poolStart : Math.min(poolStart, poolPeak * weight[i]);
-    }
-    const poolEnd = poolStart + poolAdd - distribution;
-    if (poolEnd < 1e-6) poolPeak = 0;
-
     const fee = 0;
-    const totalInterest = interestPaid + distribution;
     const totalPayment = principal + totalInterest + fee;
 
     if (duePct[i] && !gracePct[i]) lastPctDueIndex = i;
@@ -809,7 +821,7 @@ function generateSchedule(p) {
       poolEnd, bucketEnd, fee, totalPayment, balanceEnd,
     });
 
-    balance = balanceEnd; bucket = bucketEnd; pool = poolEnd;
+    balance = balanceEnd;
   }
 
   if (lastPctDueIndex === 0) lastPctDueIndex = N; // весь срок в льготе по % — контрольная точка последний месяц
