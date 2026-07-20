@@ -177,13 +177,13 @@
   .error-block.visible { display: block; }
 
   .grace-table-wrap {
-    max-height: 260px;
+    max-height: 320px;
     overflow-y: auto;
     border: 1px solid var(--border);
     border-radius: 4px;
     margin-top: 8px;
   }
-  table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; table-layout: fixed; }
   .grace-table-wrap table thead th {
     position: sticky; top: 0;
     background: var(--navy);
@@ -193,9 +193,22 @@
   th, td { padding: 6px 7px; border-bottom: 1px solid var(--border); text-align: center; white-space: nowrap; }
   th { font-weight: 600; color: var(--text-muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.2px; }
   td.month-col { color: var(--text-muted); }
+  .grace-table-wrap thead th:first-child { white-space: nowrap; }
   input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; }
   .weight-input { width: 60px; padding: 3px 4px; text-align: center; }
   tbody tr:nth-child(even) td { background: #f7f9fc; }
+
+  .grace-table-wrap table { table-layout: fixed; }
+  .grace-table-wrap th, .grace-table-wrap td {
+    white-space: normal;
+    word-break: break-word;
+    line-height: 1.25;
+    padding: 8px 6px;
+  }
+  .grace-table-wrap .grace-cell { cursor: pointer; }
+  .grace-table-wrap .grace-cell input[type=checkbox] { width: 19px; height: 19px; pointer-events: none; }
+  .grace-table-wrap .weight-input { width: 100%; padding: 6px 4px; font-size: 13px; }
+  .grace-table-wrap tbody tr.grace-row-input td { background: var(--grace-bg) !important; }
   tr.grace-row td { background: var(--grace-bg) !important; }
 
   .gesv-card {
@@ -411,6 +424,9 @@
       <h2>Льготы по месяцам</h2>
       <div class="grace-table-wrap">
         <table>
+          <colgroup>
+            <col style="width:42px"><col style="width:64px"><col><col style="width:64px"><col>
+          </colgroup>
           <thead>
             <tr><th>Мес.</th><th>Льгота ОД</th><th>Вес ОД (ручн.)</th><th>Льгота %</th><th>Вес (ручн.), %</th></tr>
           </thead>
@@ -986,17 +1002,30 @@ function renderGraceTable() {
   tbody.innerHTML = '';
   monthsState.forEach((m, idx) => {
     const tr = document.createElement('tr');
+    if (m.graceOD || m.gracePct) tr.classList.add('grace-row-input');
     tr.innerHTML = `
       <td class="month-col">${idx + 1}</td>
-      <td><input type="checkbox" data-idx="${idx}" data-field="graceOD" ${m.graceOD ? 'checked' : ''}></td>
+      <td class="grace-cell"><input type="checkbox" data-idx="${idx}" data-field="graceOD" ${m.graceOD ? 'checked' : ''}></td>
       <td><input type="text" inputmode="numeric" class="weight-input" data-idx="${idx}" data-field="weightOD" value="${m.weightOD || 0}"></td>
-      <td><input type="checkbox" data-idx="${idx}" data-field="gracePct" ${m.gracePct ? 'checked' : ''}></td>
+      <td class="grace-cell"><input type="checkbox" data-idx="${idx}" data-field="gracePct" ${m.gracePct ? 'checked' : ''}></td>
       <td><input type="text" inputmode="numeric" class="weight-input" data-idx="${idx}" data-field="weight" value="${m.weight}"></td>
     `;
     tbody.appendChild(tr);
   });
   tbody.querySelectorAll('input[type=checkbox]').forEach(cb => {
-    cb.addEventListener('change', () => { monthsState[+cb.dataset.idx][cb.dataset.field] = cb.checked; });
+    cb.addEventListener('change', () => {
+      monthsState[+cb.dataset.idx][cb.dataset.field] = cb.checked;
+      cb.closest('tr').classList.toggle('grace-row-input', monthsState[+cb.dataset.idx].graceOD || monthsState[+cb.dataset.idx].gracePct);
+    });
+  });
+  // Клик в любом месте ячейки (не только по самому чекбоксу) переключает
+  // льготу — так проще отмечать месяцы, особенно с сенсорного экрана.
+  tbody.querySelectorAll('td.grace-cell').forEach(td => {
+    td.addEventListener('click', () => {
+      const cb = td.querySelector('input[type=checkbox]');
+      cb.checked = !cb.checked;
+      cb.dispatchEvent(new Event('change', { bubbles: true }));
+    });
   });
   tbody.querySelectorAll('input.weight-input').forEach(attachWeightInputBehavior);
 }
