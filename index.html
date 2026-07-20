@@ -221,6 +221,10 @@
         </div>
       </div>
 
+      <label for="f-payment-day">День платежа (1–31)</label>
+      <input type="number" id="f-payment-day" min="1" max="31" step="1" placeholder="как в дате выдачи">
+      <div class="field-note">Необязательно: фиксированный день месяца для всех дат платежей, если он должен отличаться от дня даты выдачи. Пусто — платежи привязаны к дню выдачи, как раньше.</div>
+
       <label for="f-base-days">База дней в году</label>
       <input type="number" id="f-base-days" value="360" min="1" step="1">
 
@@ -396,8 +400,10 @@ const PERIODICITY_INTERVAL = {
 function dateKey(d) { return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); }
 function isWeekend(d) { const day = d.getDay(); return day === 0 || day === 6; }
 
-function addMonthsClamped(date, months) {
-  const day = date.getDate();
+// dayOverride позволяет "заякорить" дату платежа на фиксированный день месяца,
+// отличный от дня даты выдачи (см. поле "День платежа").
+function addMonthsClamped(date, months, dayOverride) {
+  const day = dayOverride || date.getDate();
   const d = new Date(date.getFullYear(), date.getMonth(), 1);
   d.setMonth(d.getMonth() + months);
   const daysInMonth = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
@@ -592,6 +598,7 @@ function validateInputs(p) {
   if (!p.issueDate || isNaN(p.issueDate.getTime())) return 'Укажите дату выдачи кредита.';
   if (!Number.isInteger(p.termMonths) || p.termMonths < 1 || p.termMonths > 360) return 'Срок должен быть от 1 до 360 месяцев.';
   if (!(p.baseDays > 0)) return 'База расчёта дней в году должна быть больше нуля.';
+  if (p.paymentDay !== null && (!Number.isInteger(p.paymentDay) || p.paymentDay < 1 || p.paymentDay > 31)) return 'День платежа должен быть от 1 до 31.';
   if (!(p.feePct >= 0) || !(p.feeFix >= 0)) return 'Комиссии не могут быть отрицательными.';
   if (!(p.rate2Pct >= 0)) return 'Вторая ставка не может быть отрицательной.';
   if (!(p.rate3Pct >= 0)) return 'Третья ставка не может быть отрицательной.';
@@ -658,7 +665,7 @@ function generateSchedule(p) {
   const monthDates = [p.issueDate];
   const wasAdjusted = [false];
   for (let i = 1; i <= N; i++) {
-    const raw = addMonthsClamped(p.issueDate, i);
+    const raw = addMonthsClamped(p.issueDate, i, p.paymentDay);
     const adj = nextWorkday(raw, calendar.isNonWorking);
     monthDates.push(adj);
     wasAdjusted.push(adj.getTime() !== raw.getTime());
@@ -869,7 +876,9 @@ function syncEndDateFromTerm() {
   const issueDate = parseDateField('f-issue-date');
   const term = parseInt(document.getElementById('f-term').value, 10);
   if (!issueDate || !Number.isFinite(term)) return;
-  document.getElementById('f-end-date').value = toDateInputValue(addMonthsClamped(issueDate, term));
+  const paymentDayVal = document.getElementById('f-payment-day').value;
+  const paymentDay = paymentDayVal ? parseInt(paymentDayVal, 10) : null;
+  document.getElementById('f-end-date').value = toDateInputValue(addMonthsClamped(issueDate, term, paymentDay));
 }
 
 function syncTermFromEndDate() {
@@ -913,6 +922,7 @@ function readParams() {
     ratePct: parseFloat(document.getElementById('f-rate').value),
     issueDate: dateStr ? new Date(dateStr + 'T00:00:00') : null,
     termMonths: parseInt(document.getElementById('f-term').value, 10),
+    paymentDay: document.getElementById('f-payment-day').value ? parseInt(document.getElementById('f-payment-day').value, 10) : null,
     baseDays: parseFloat(document.getElementById('f-base-days').value),
     odPeriodicity,
     pctPeriodicity: document.getElementById('f-pct-period').value,
@@ -1036,7 +1046,8 @@ function exportExcel() {
     leftRows.push({ label: 'Дата третьей ставки', value: formatDateRu(p.rate3Date), type: 'str' });
   }
   leftRows.push({ label: 'Дата выдачи', value: formatDateRu(p.issueDate), type: 'str' });
-  leftRows.push({ label: 'Дата окончания кредита', value: formatDateRu(addMonthsClamped(p.issueDate, p.termMonths)), type: 'str' });
+  if (p.paymentDay) leftRows.push({ label: 'День платежа', value: p.paymentDay, type: 'num' });
+  leftRows.push({ label: 'Дата окончания кредита', value: formatDateRu(addMonthsClamped(p.issueDate, p.termMonths, p.paymentDay)), type: 'str' });
   leftRows.push({ label: 'Срок, мес.', value: p.termMonths, type: 'num' });
   leftRows.push({ label: 'База дней в году', value: p.baseDays, type: 'num' });
   leftRows.push({ label: 'Периодичность погашения ОД', value: labels.odPeriodicity, type: 'str' });
@@ -1181,6 +1192,7 @@ function init() {
 
   document.getElementById('f-end-date').addEventListener('change', syncTermFromEndDate);
   document.getElementById('f-issue-date').addEventListener('change', syncEndDateFromTerm);
+  document.getElementById('f-payment-day').addEventListener('input', syncEndDateFromTerm);
 
   const syncMethodUI = () => {
     const isAnnuity = document.getElementById('f-method').value === 'annuity';
