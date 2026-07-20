@@ -876,9 +876,9 @@ function syncEndDateFromTerm() {
   const issueDate = parseDateField('f-issue-date');
   const term = parseInt(document.getElementById('f-term').value, 10);
   if (!issueDate || !Number.isFinite(term)) return;
-  const paymentDayVal = document.getElementById('f-payment-day').value;
-  const paymentDay = paymentDayVal ? parseInt(paymentDayVal, 10) : null;
-  document.getElementById('f-end-date').value = toDateInputValue(addMonthsClamped(issueDate, term, paymentDay));
+  // "Дата окончания кредита" отражает срок от даты выдачи и не зависит от
+  // "Дня платежа" — тот влияет только на фактические даты платежей в графике.
+  document.getElementById('f-end-date').value = toDateInputValue(addMonthsClamped(issueDate, term));
 }
 
 function syncTermFromEndDate() {
@@ -1047,7 +1047,7 @@ function exportExcel() {
   }
   leftRows.push({ label: 'Дата выдачи', value: formatDateRu(p.issueDate), type: 'str' });
   if (p.paymentDay) leftRows.push({ label: 'День платежа', value: p.paymentDay, type: 'num' });
-  leftRows.push({ label: 'Дата окончания кредита', value: formatDateRu(addMonthsClamped(p.issueDate, p.termMonths, p.paymentDay)), type: 'str' });
+  leftRows.push({ label: 'Дата окончания кредита', value: formatDateRu(addMonthsClamped(p.issueDate, p.termMonths)), type: 'str' });
   leftRows.push({ label: 'Срок, мес.', value: p.termMonths, type: 'num' });
   leftRows.push({ label: 'База дней в году', value: p.baseDays, type: 'num' });
   leftRows.push({ label: 'Периодичность погашения ОД', value: labels.odPeriodicity, type: 'str' });
@@ -1192,7 +1192,6 @@ function init() {
 
   document.getElementById('f-end-date').addEventListener('change', syncTermFromEndDate);
   document.getElementById('f-issue-date').addEventListener('change', syncEndDateFromTerm);
-  document.getElementById('f-payment-day').addEventListener('input', syncEndDateFromTerm);
 
   const syncMethodUI = () => {
     const isAnnuity = document.getElementById('f-method').value === 'annuity';
