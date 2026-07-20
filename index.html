@@ -354,11 +354,11 @@
             <tr>
               <th>№</th><th>Дата</th><th>Остаток на начало</th>
               <th>Погашение ОД</th><th>% к уплате (итого)</th><th>Начисленные проценты за ЛП</th><th>Распределение процентов за ЛП</th>
-              <th>Комиссия</th><th>Итоговый платёж</th><th>Остаток на конец</th>
+              <th>Итоговый платёж</th><th>Остаток на конец</th>
             </tr>
           </thead>
           <tbody id="schedule-tbody">
-            <tr><td colspan="10" class="empty-hint">Нажмите «Рассчитать», чтобы увидеть график</td></tr>
+            <tr><td colspan="9" class="empty-hint">Нажмите «Рассчитать», чтобы увидеть график</td></tr>
           </tbody>
         </table>
       </div>
@@ -893,7 +893,6 @@ function renderResults(result) {
       <td>${formatMoney(r.totalInterest)}</td>
       <td>${formatMoney(r.poolAdd)}</td>
       <td>${formatMoney(r.distribution)}</td>
-      <td>${formatMoney(r.fee)}</td>
       <td>${formatMoney(r.totalPayment)}</td>
       <td>${formatMoney(r.balanceEnd)}</td>
     `;
@@ -911,7 +910,7 @@ function doCalculate() {
     document.getElementById('btn-export').disabled = true;
     document.getElementById('gesv-value').textContent = '—';
     document.querySelectorAll('.tile').forEach(t => { t.classList.remove('ok', 'bad'); t.querySelector('.tile-value').textContent = '—'; });
-    document.getElementById('schedule-tbody').innerHTML = '<tr><td colspan="10" class="empty-hint">Нажмите «Рассчитать», чтобы увидеть график</td></tr>';
+    document.getElementById('schedule-tbody').innerHTML = '<tr><td colspan="9" class="empty-hint">Нажмите «Рассчитать», чтобы увидеть график</td></tr>';
     return;
   }
   result.params = params;
@@ -999,7 +998,7 @@ function exportExcel() {
   // ---- Заголовок таблицы графика (компактная строка) ----
   const headers = ['№ платежа','Дата','Остаток на начало',
     'Погашение ОД','Начислено %','% к уплате (итого)','Начисленные проценты за ЛП','Распределение процентов за ЛП',
-    'Комиссия','Итоговый платёж','Остаток на конец'];
+    'Итоговый платёж','Остаток на конец'];
   const headerRow = `<Row>${headers.map(h => `<Cell ss:StyleID="header"><Data ss:Type="String">${escapeXml(h)}</Data></Cell>`).join('')}</Row>`;
 
   // ---- Строка выдачи (t=0), перед первым месяцем графика ----
@@ -1008,7 +1007,6 @@ function exportExcel() {
     + strCell('Выдача', false)
     + strCell(formatDateRu(d.date), false)
     + dashCell() + dashCell() + dashCell() + dashCell() + dashCell() + dashCell()
-    + numCell(d.feeAmount, false)
     + numCell(-d.netAmount, false)
     + numCell(p.amount, false)
     + '</Row>';
@@ -1025,7 +1023,6 @@ function exportExcel() {
       numCell(r.totalInterest, grace),
       numCell(r.poolAdd, grace),
       numCell(r.distribution, grace),
-      numCell(r.fee, grace),
       numCell(r.totalPayment, grace),
       numCell(r.balanceEnd, grace),
     ].join('') + '</Row>';
@@ -1036,7 +1033,7 @@ function exportExcel() {
     + '<Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#DDE3E9"/>'
     + '<Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#DDE3E9"/></Borders>';
 
-  const columns = [230, 150, 85, 80, 75, 80, 80, 80, 65, 85, 85]
+  const columns = [230, 150, 85, 80, 75, 80, 80, 80, 85, 85]
     .map(w => `<Column ss:Width="${w}"/>`).join('');
 
   const xml = '<?xml version="1.0" encoding="UTF-8"?>\r\n'
