@@ -316,11 +316,12 @@
       <div class="grace-table-wrap">
         <table>
           <thead>
-            <tr><th>Мес.</th><th>Льгота ОД</th><th>Льгота %</th><th>Вес (ручн.), %</th></tr>
+            <tr><th>Мес.</th><th>Льгота ОД</th><th>Вес ОД (ручн.), %</th><th>Льгота %</th><th>Вес (ручн.), %</th></tr>
           </thead>
           <tbody id="grace-tbody"></tbody>
         </table>
       </div>
+      <div class="field-note">«Вес ОД (ручн.), %» — доля <b>текущего</b> остатка ОД, направляемая на погашение в этом месяце. 0% (по умолчанию) — равнодолевое распределение остатка между оставшимися датами уплаты ОД, как раньше. На последней оставшейся дате уплаты ОД остаток списывается полностью независимо от веса.</div>
       <div class="btn-row">
         <button class="btn-primary" id="btn-calc">Рассчитать</button>
         <button class="btn-secondary" id="btn-export" disabled>Экспорт в Excel</button>
@@ -581,6 +582,7 @@ function validateInputs(p) {
   if (!(p.rate3Pct >= 0)) return 'Третья ставка не может быть отрицательной.';
   for (const m of p.months) {
     if (!(m.weight >= 0) || !(m.weight <= 100)) return 'Вес ручного распределения должен быть от 0 до 100%.';
+    if (!(m.weightOD >= 0) || !(m.weightOD <= 100)) return 'Вес ОД ручного распределения должен быть от 0 до 100%.';
   }
   return null;
 }
@@ -652,12 +654,13 @@ function generateSchedule(p) {
     duePct.push(i % intervalPct === 0 || i === N);
   }
 
-  const graceOD = [false], gracePct = [false], weight = [0];
+  const graceOD = [false], gracePct = [false], weight = [0], weightOD = [0];
   for (let i = 1; i <= N; i++) {
     const m = p.months[i - 1];
     graceOD.push(!!m.graceOD);
     gracePct.push(!!m.gracePct);
     weight.push((Number(m.weight) || 0) / 100);
+    weightOD.push((Number(m.weightOD) || 0) / 100);
   }
 
   // Суффиксные суммы: сколько ещё не-льготных due-дат осталось, включая текущую
@@ -678,8 +681,16 @@ function generateSchedule(p) {
   for (let i = 1; i <= N; i++) {
     const balanceStart = balance;
 
+    // Вес ОД — доля текущего остатка, направляемая на погашение в этом месяце
+    // (0 = равнодолевое распределение, как раньше). На последней оставшейся дате
+    // уплаты ОД остаток списывается полностью независимо от веса — гарантия
+    // закрытия долга к концу срока.
     let principal = 0;
-    if (dueOD[i] && !graceOD[i] && remainingOD[i] > 0) principal = balanceStart / remainingOD[i];
+    if (dueOD[i] && !graceOD[i] && remainingOD[i] > 0) {
+      if (remainingOD[i] === 1) principal = balanceStart;
+      else if (weightOD[i] > 0) principal = Math.min(balanceStart, balanceStart * weightOD[i]);
+      else principal = balanceStart / remainingOD[i];
+    }
     const balanceEnd = balanceStart - principal;
 
     const periodStart = monthDates[i - 1];
@@ -756,7 +767,7 @@ function rebuildGraceTable(term) {
   const old = monthsState;
   monthsState = [];
   for (let i = 0; i < term; i++) {
-    monthsState.push(old[i] ? old[i] : { graceOD: false, gracePct: false, weight: 0 });
+    monthsState.push(old[i] ? old[i] : { graceOD: false, weightOD: 0, gracePct: false, weight: 0 });
   }
   renderGraceTable();
 }
@@ -804,6 +815,7 @@ function renderGraceTable() {
     tr.innerHTML = `
       <td class="month-col">${idx + 1}</td>
       <td><input type="checkbox" data-idx="${idx}" data-field="graceOD" ${m.graceOD ? 'checked' : ''}></td>
+      <td><input type="number" class="weight-input" data-idx="${idx}" data-field="weightOD" min="0" max="100" step="5" value="${m.weightOD || 0}"></td>
       <td><input type="checkbox" data-idx="${idx}" data-field="gracePct" ${m.gracePct ? 'checked' : ''}></td>
       <td><input type="number" class="weight-input" data-idx="${idx}" data-field="weight" min="0" max="100" step="5" value="${m.weight}"></td>
     `;
