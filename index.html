@@ -407,6 +407,14 @@ function addMonthsClamped(date, months) {
 
 function daysBetween(a, b) { return Math.round((b.getTime() - a.getTime()) / 86400000); }
 
+// Европейская конвенция 30E/360: каждый месяц считается ровно 30-дневным
+// (31-е число обеих дат приравнивается к 30-му), год — 360 дней.
+function days30E360(a, b) {
+  const d1 = Math.min(a.getDate(), 30);
+  const d2 = Math.min(b.getDate(), 30);
+  return (b.getFullYear() - a.getFullYear()) * 360 + (b.getMonth() - a.getMonth()) * 30 + (d2 - d1);
+}
+
 function formatDateRu(d) {
   const dd = String(d.getDate()).padStart(2, '0');
   const mm = String(d.getMonth() + 1).padStart(2, '0');
@@ -620,6 +628,10 @@ function generateSchedule(p) {
     return active;
   }
 
+  // Аннуитет считается по европейской конвенции 30E/360 (каждый месяц — ровно
+  // 30 дней, год — 360); равнодолевой график — по фактическим календарным дням.
+  const dayCount = p.method === 'annuity' ? days30E360 : daysBetween;
+
   // Начисленные проценты за период, раздельно по дням для каждого отрезка между
   // точками переключения ставки, попадающими внутрь периода.
   function accrueInterest(balanceStart, periodStart, periodEnd) {
@@ -630,7 +642,7 @@ function generateSchedule(p) {
     let weighted = 0;
     for (let k = 0; k < boundaries.length - 1; k++) {
       const segStart = boundaries[k], segEnd = boundaries[k + 1];
-      const days = daysBetween(segStart, segEnd);
+      const days = dayCount(segStart, segEnd);
       if (days <= 0) continue;
       weighted += rateActiveAt(segStart) * days;
     }
@@ -698,7 +710,7 @@ function generateSchedule(p) {
       let bal = startBalance;
       for (let j = startIndex; j <= N; j++) {
         if (!dueOD[j] || graceOD[j]) continue;
-        const days = daysBetween(monthDates[j - 1], monthDates[j]);
+        const days = dayCount(monthDates[j - 1], monthDates[j]);
         bal -= (X - bal / p.baseDays * frozenRate * days);
       }
       return bal;
