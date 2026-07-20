@@ -704,25 +704,28 @@ function generateSchedule(p) {
     remainingPctLocal[i] = gracePct[i] ? 0 : (duePct[i] ? 1 : 0) + remainingPctLocal[i + 1];
   }
 
-  // Начисление процентов + бакет (перенос % между не совпадающими датами ОД/%)
-  // + пул (льгота по %) за один период — вынесено в отдельную функцию, чтобы
-  // решатель аннуитетного платежа мог "проиграть" ровно ту же логику вперёд по
-  // локальной копии состояния, не трогая реальный расчёт.
+  // Начисление и распределение процентов за один период — вынесено в отдельную
+  // функцию, переиспользуемую и основным циклом, и решателем аннуитетного
+  // платежа (на локальной копии состояния, не трогая реальный расчёт).
+  // Пул по льготе % и "ожидание" due-даты при периодичности реже месяца — это
+  // одна и та же отсрочка: пока платёж не наступил (не due ИЛИ явная льгота %),
+  // начисленное уходит в пул; на самой due-дате (не в льготе) собственное
+  // начисление этого периода платится сразу, а накопленный пул распределяется
+  // выбранным способом («Способ распределения пула %») — так квартальная/
+  // полугодовая/годовая/в конце срока периодичность работает так же, как явная
+  // льгота: с теми же 4 способами распределения, а не автоматической полной
+  // выплатой при наступлении due-даты.
   function stepInterest(state, i, balanceStart) {
     const interestAccrued = accrueInterest(balanceStart, monthDates[i - 1], monthDates[i]);
-    const bucketStart = state.bucket;
-    const amountReady = bucketStart + interestAccrued;
-
-    let interestPaid = 0, poolAdd = 0;
-    if (duePct[i] && !gracePct[i]) interestPaid = amountReady;
-    else if (gracePct[i]) poolAdd = amountReady;
-    const bucketEnd = (duePct[i] || gracePct[i]) ? 0 : amountReady;
+    const deferred = !duePct[i] || gracePct[i];
 
     const poolStart = state.pool;
-    if (gracePct[i]) state.poolPeak = poolStart + poolAdd;
+    const poolAdd = deferred ? interestAccrued : 0;
+    if (deferred) state.poolPeak = poolStart + poolAdd;
 
-    let distribution = 0;
-    if (duePct[i] && !gracePct[i]) {
+    let interestPaid = 0, distribution = 0;
+    if (!deferred) {
+      interestPaid = interestAccrued;
       if (p.poolMethod === 'nearest') distribution = poolStart;
       else if (p.poolMethod === 'all') distribution = remainingPct[i] > 0 ? poolStart / remainingPct[i] : 0;
       else if (p.poolMethod === 'untilNextGrace') distribution = remainingPctLocal[i] > 0 ? poolStart / remainingPctLocal[i] : 0;
@@ -730,24 +733,22 @@ function generateSchedule(p) {
     }
     const poolEnd = poolStart + poolAdd - distribution;
     if (poolEnd < 1e-6) state.poolPeak = 0;
-
-    state.bucket = bucketEnd;
     state.pool = poolEnd;
 
-    return { interestAccrued, interestPaid, poolAdd, bucketStart, bucketEnd, distribution, poolEnd, totalInterest: interestPaid + distribution };
+    return { interestAccrued, interestPaid, poolAdd, distribution, poolEnd, totalInterest: interestPaid + distribution };
   }
 
   // Аннуитет: подбираем константный платёж X (методом бисекции, как для ГЭСВ),
   // при котором «X минус фактически уплаченные проценты за период» на каждой
   // не-льготной дате ОД от startIndex до конца срока обнуляет остаток. Проценты
-  // считаются через ту же stepInterest, что и основной цикл (с учётом бакета
-  // между несовпадающими датами ОД/% и пула по льготе %) — поэтому платёж
-  // остаётся одинаковым по всему графику: и при разной периодичности ОД/%,
-  // и при известной заранее льготе, и при смене ставки (2-я/3-я).
-  function solveAnnuityPayment(startBalance, startIndex, bucketAtStart, poolAtStart, poolPeakAtStart) {
+  // считаются через ту же stepInterest, что и основной цикл (с учётом пула между
+  // несовпадающими датами ОД/% и по льготе %) — поэтому платёж остаётся
+  // одинаковым по всему графику: и при разной периодичности ОД/%, и при
+  // известной заранее льготе, и при смене ставки (2-я/3-я).
+  function solveAnnuityPayment(startBalance, startIndex, poolAtStart, poolPeakAtStart) {
     const simulateFinalBalance = (X) => {
       let bal = startBalance;
-      const state = { bucket: bucketAtStart, pool: poolAtStart, poolPeak: poolPeakAtStart };
+      const state = { pool: poolAtStart, poolPeak: poolPeakAtStart };
       for (let j = startIndex; j <= N; j++) {
         const { totalInterest } = stepInterest(state, j, bal);
         if (dueOD[j] && !graceOD[j]) bal -= (X - totalInterest);
@@ -771,20 +772,20 @@ function generateSchedule(p) {
 
   const rows = [];
   let balance = p.amount, sumPrincipal = 0, lastPctDueIndex = 0;
-  const state = { bucket: 0, pool: 0, poolPeak: 0 };
+  const state = { pool: 0, poolPeak: 0 };
   let annuityX = 0, needsResolve = true;
 
   for (let i = 1; i <= N; i++) {
     const balanceStart = balance;
 
     // Резолвим аннуитетный платёж до начисления процентов этого периода — по
-    // состоянию бакета/пула на начало периода, как при реальном расчёте.
+    // состоянию пула на начало периода, как при реальном расчёте.
     if (p.method === 'annuity' && needsResolve && dueOD[i] && !graceOD[i] && remainingOD[i] > 1) {
-      annuityX = solveAnnuityPayment(balanceStart, i, state.bucket, state.pool, state.poolPeak);
+      annuityX = solveAnnuityPayment(balanceStart, i, state.pool, state.poolPeak);
       needsResolve = false;
     }
 
-    const { interestAccrued, interestPaid, poolAdd, bucketStart, bucketEnd, distribution, poolEnd, totalInterest } = stepInterest(state, i, balanceStart);
+    const { interestAccrued, interestPaid, poolAdd, distribution, poolEnd, totalInterest } = stepInterest(state, i, balanceStart);
 
     // Вес ОД — сумма (не доля), направляемая на погашение в этом месяце (0 =
     // распределение остатка согласно типу графика: равными долями или
@@ -814,21 +815,11 @@ function generateSchedule(p) {
     if (duePct[i] && !gracePct[i]) lastPctDueIndex = i;
     sumPrincipal += principal;
 
-    // Для столбцов "...за ЛП" в интерфейсе и Excel показываем не только пул по
-    // льготе %, но и бакет — накопление процентов между несовпадающими датами
-    // ОД/% (периодичность реже месяца): lpAccrued — что скопилось за этот
-    // месяц (грант в пул при льготе, либо остаток бакета при ожидании due-даты);
-    // lpDistribution — что выплачено из ранее накопленного (пул или "старый"
-    // бакет, без учёта начисления самого текущего месяца).
-    const lpAccrued = poolAdd + bucketEnd;
-    const lpDistribution = distribution + ((duePct[i] && !gracePct[i]) ? bucketStart : 0);
-
     rows.push({
       i, date: monthDates[i], adjusted: wasAdjusted[i],
       dueOD: dueOD[i], duePct: duePct[i], graceOD: graceOD[i], gracePct: gracePct[i],
       balanceStart, principal, interestAccrued, totalInterest, poolAdd, distribution,
-      lpAccrued, lpDistribution,
-      poolEnd, bucketEnd, fee, totalPayment, balanceEnd,
+      poolEnd, bucketEnd: 0, fee, totalPayment, balanceEnd,
     });
 
     balance = balanceEnd;
@@ -993,8 +984,8 @@ function renderResults(result) {
       <td>${formatMoney(r.balanceStart)}</td>
       <td>${formatMoney(r.principal)}</td>
       <td>${formatMoney(r.totalInterest)}</td>
-      <td>${formatMoney(r.lpAccrued)}</td>
-      <td>${formatMoney(r.lpDistribution)}</td>
+      <td>${formatMoney(r.poolAdd)}</td>
+      <td>${formatMoney(r.distribution)}</td>
       <td>${formatMoney(r.totalPayment)}</td>
       <td>${formatMoney(r.balanceEnd)}</td>
     `;
@@ -1126,8 +1117,8 @@ function exportExcel() {
       numCell(r.principal, grace),
       numCell(r.interestAccrued, grace),
       numCell(r.totalInterest, grace),
-      numCell(r.lpAccrued, grace),
-      numCell(r.lpDistribution, grace),
+      numCell(r.poolAdd, grace),
+      numCell(r.distribution, grace),
       numCell(r.totalPayment, grace),
       numCell(r.balanceEnd, grace),
     ].join('') + '</Row>';
