@@ -364,12 +364,12 @@
           <thead>
             <tr>
               <th>№</th><th>Дата</th><th>Остаток на начало</th>
-              <th>Погашение ОД</th><th>% к уплате (итого)</th><th>Начисленные проценты за ЛП</th><th>Распределение процентов за ЛП</th>
+              <th>Погашение ОД</th><th>Начислено %</th><th>% к уплате (итого)</th><th>Начисленные проценты за ЛП</th><th>Распределение процентов за ЛП</th>
               <th>Итоговый платёж</th><th>Остаток на конец</th>
             </tr>
           </thead>
           <tbody id="schedule-tbody">
-            <tr><td colspan="9" class="empty-hint">Нажмите «Рассчитать», чтобы увидеть график</td></tr>
+            <tr><td colspan="10" class="empty-hint">Нажмите «Рассчитать», чтобы увидеть график</td></tr>
           </tbody>
         </table>
       </div>
@@ -983,6 +983,7 @@ function renderResults(result) {
       <td>${dateHtml}</td>
       <td>${formatMoney(r.balanceStart)}</td>
       <td>${formatMoney(r.principal)}</td>
+      <td>${formatMoney(r.interestAccrued)}</td>
       <td>${formatMoney(r.totalInterest)}</td>
       <td>${formatMoney(r.poolAdd)}</td>
       <td>${formatMoney(r.distribution)}</td>
@@ -1003,7 +1004,7 @@ function doCalculate() {
     document.getElementById('btn-export').disabled = true;
     document.getElementById('gesv-value').textContent = '—';
     document.querySelectorAll('.tile').forEach(t => { t.classList.remove('ok', 'bad'); t.querySelector('.tile-value').textContent = '—'; });
-    document.getElementById('schedule-tbody').innerHTML = '<tr><td colspan="9" class="empty-hint">Нажмите «Рассчитать», чтобы увидеть график</td></tr>';
+    document.getElementById('schedule-tbody').innerHTML = '<tr><td colspan="10" class="empty-hint">Нажмите «Рассчитать», чтобы увидеть график</td></tr>';
     return;
   }
   result.params = params;
