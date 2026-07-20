@@ -224,6 +224,13 @@
       <label for="f-base-days">База дней в году</label>
       <input type="number" id="f-base-days" value="360" min="1" step="1">
 
+      <label for="f-method">Тип графика</label>
+      <select id="f-method">
+        <option value="equal" selected>Равнодолевой (равные доли ОД)</option>
+        <option value="annuity">Аннуитетный (равный платёж)</option>
+      </select>
+      <div class="field-note" id="annuity-note" style="display:none;">В аннуитетном режиме ОД и % платятся одной суммой по единой периодичности (см. «Периодичность погашения ОД» — поле «%» ниже отключается и синхронизируется с ним). Платёж пересчитывается заново при выходе из льготы по ОД, при смене ставки (2-я/3-я) и после ручной суммы ОД — как переамортизация в реальных аннуитетных продуктах.</div>
+
       <div class="field-row">
         <div>
           <label for="f-od-period">Периодичность погашения ОД</label>
@@ -675,27 +682,82 @@ function generateSchedule(p) {
     remainingPctLocal[i] = gracePct[i] ? 0 : (duePct[i] ? 1 : 0) + remainingPctLocal[i + 1];
   }
 
+  // Аннуитет: подбираем константный платёж X (методом бисекции, как для ГЭСВ),
+  // при котором «X минус проценты за период» на каждой не-льготной дате ОД от
+  // startIndex до конца срока обнуляет остаток. Дни в периодах могут отличаться
+  // от периода к периоду, поэтому закрытой формулы нет — решаем численно.
+  // Ставка на весь горизонт подбора "замораживается" на уровне, действующем в
+  // начале текущего режима: иначе решение заранее "подглядывало" бы в будущую
+  // смену ставки, которая всё равно позже перезапустит переамортизацию — и
+  // платёж до смены ставки оказался бы сглажен с учётом эффекта, который потом
+  // отбрасывается. Реальные начисления процентов в графике при этом считаются
+  // как обычно, с учётом фактической смены ставки (см. accrueInterest ниже).
+  function solveAnnuityPayment(startBalance, startIndex) {
+    const frozenRate = rateActiveAt(monthDates[startIndex - 1]);
+    const simulateFinalBalance = (X) => {
+      let bal = startBalance;
+      for (let j = startIndex; j <= N; j++) {
+        if (!dueOD[j] || graceOD[j]) continue;
+        const days = daysBetween(monthDates[j - 1], monthDates[j]);
+        bal -= (X - bal / p.baseDays * frozenRate * days);
+      }
+      return bal;
+    };
+    let lo = 0, hi = startBalance > 0 ? startBalance : 1;
+    let fLo = simulateFinalBalance(lo), fHi = simulateFinalBalance(hi);
+    let guard = 0;
+    while (fLo * fHi > 0 && guard < 60) { hi *= 2; fHi = simulateFinalBalance(hi); guard++; }
+    if (fLo * fHi > 0) return startBalance;
+    let mid = hi;
+    for (let it = 0; it < 100; it++) {
+      mid = (lo + hi) / 2;
+      const fMid = simulateFinalBalance(mid);
+      if (Math.abs(fMid) < 1e-6 || (hi - lo) < 1e-6) return mid;
+      if ((fLo < 0) === (fMid < 0)) { lo = mid; fLo = fMid; } else { hi = mid; }
+    }
+    return mid;
+  }
+
   const rows = [];
   let balance = p.amount, bucket = 0, pool = 0, poolPeak = 0, sumPrincipal = 0, lastPctDueIndex = 0;
+  let annuityX = 0, needsResolve = true, prevActiveRate = null;
 
   for (let i = 1; i <= N; i++) {
     const balanceStart = balance;
 
-    // Вес ОД — сумма (не доля), направляемая на погашение в этом месяце
-    // (0 = равнодолевое распределение, как раньше). На последней оставшейся дате
-    // уплаты ОД остаток списывается полностью независимо от заданной суммы —
-    // гарантия закрытия долга к концу срока.
-    let principal = 0;
-    if (dueOD[i] && !graceOD[i] && remainingOD[i] > 0) {
-      if (remainingOD[i] === 1) principal = balanceStart;
-      else if (weightOD[i] > 0) principal = Math.min(balanceStart, weightOD[i]);
-      else principal = balanceStart / remainingOD[i];
-    }
-    const balanceEnd = balanceStart - principal;
-
     const periodStart = monthDates[i - 1];
     const periodEnd = monthDates[i];
     const interestAccrued = accrueInterest(balanceStart, periodStart, periodEnd);
+
+    // Смена действующей ставки между периодами — триггер переамортизации
+    // (пересчёта константного платежа) на оставшийся срок при аннуитете.
+    const curActiveRate = rateActiveAt(periodStart);
+    if (prevActiveRate !== null && curActiveRate !== prevActiveRate) needsResolve = true;
+    prevActiveRate = curActiveRate;
+
+    // Вес ОД — сумма (не доля), направляемая на погашение в этом месяце (0 =
+    // распределение остатка согласно типу графика: равными долями или
+    // аннуитетным платежом). На последней оставшейся дате уплаты ОД остаток
+    // списывается полностью независимо от заданной суммы — гарантия закрытия
+    // долга к концу срока.
+    let principal = 0;
+    if (dueOD[i] && !graceOD[i] && remainingOD[i] > 0) {
+      if (remainingOD[i] === 1) {
+        principal = balanceStart;
+      } else if (weightOD[i] > 0) {
+        principal = Math.min(balanceStart, weightOD[i]);
+        needsResolve = true; // остаток отклонился от плановой траектории аннуитета
+      } else if (p.method === 'annuity') {
+        if (needsResolve) { annuityX = solveAnnuityPayment(balanceStart, i); needsResolve = false; }
+        principal = Math.max(0, Math.min(balanceStart, annuityX - interestAccrued));
+      } else {
+        principal = balanceStart / remainingOD[i];
+      }
+    } else if (graceOD[i]) {
+      needsResolve = true; // после льготы по ОД аннуитетный платёж пересчитывается заново
+    }
+    const balanceEnd = balanceStart - principal;
+
     const bucketStart = bucket;
     const amountReady = bucketStart + interestAccrued;
 
@@ -831,14 +893,20 @@ function renderGraceTable() {
 
 function readParams() {
   const dateStr = document.getElementById('f-issue-date').value;
+  const method = document.getElementById('f-method').value;
+  const odPeriodicity = document.getElementById('f-od-period').value;
   return {
+    method,
     amount: parseThousands(document.getElementById('f-amount').value),
     ratePct: parseFloat(document.getElementById('f-rate').value),
     issueDate: dateStr ? new Date(dateStr + 'T00:00:00') : null,
     termMonths: parseInt(document.getElementById('f-term').value, 10),
     baseDays: parseFloat(document.getElementById('f-base-days').value),
-    odPeriodicity: document.getElementById('f-od-period').value,
-    pctPeriodicity: document.getElementById('f-pct-period').value,
+    odPeriodicity,
+    // В аннуитете ОД и % всегда идут одной периодичностью, независимо от того,
+    // что осталось в (отключённом) поле «%» — форсируем совпадение здесь тоже,
+    // на случай рассинхронизации UI.
+    pctPeriodicity: method === 'annuity' ? odPeriodicity : document.getElementById('f-pct-period').value,
     poolMethod: document.getElementById('f-pool-method').value,
     feePct: parseFloat(document.getElementById('f-fee-pct').value),
     feeFix: parseFloat(document.getElementById('f-fee-fix').value),
@@ -915,6 +983,7 @@ function doCalculate() {
   }
   result.params = params;
   result.labels = {
+    method: document.getElementById('f-method').selectedOptions[0].textContent,
     odPeriodicity: document.getElementById('f-od-period').selectedOptions[0].textContent,
     pctPeriodicity: document.getElementById('f-pct-period').selectedOptions[0].textContent,
     poolMethod: document.getElementById('f-pool-method').selectedOptions[0].textContent,
@@ -946,6 +1015,7 @@ function exportExcel() {
   // ---- Параметры кредита (слева) и результаты расчёта (справа), в одной строке друг с другом ----
   const leftRows = [];
   leftRows.push({ title: 'Параметры кредита' });
+  leftRows.push({ label: 'Тип графика', value: labels.method, type: 'str' });
   leftRows.push({ label: 'Сумма кредита', value: p.amount, type: 'num' });
   leftRows.push({ label: 'Ставка, % годовых', value: p.ratePct, type: 'num' });
   if (p.rate2Date && p.rate2Pct) {
@@ -1102,6 +1172,21 @@ function init() {
 
   document.getElementById('f-end-date').addEventListener('change', syncTermFromEndDate);
   document.getElementById('f-issue-date').addEventListener('change', syncEndDateFromTerm);
+
+  const syncMethodUI = () => {
+    const isAnnuity = document.getElementById('f-method').value === 'annuity';
+    document.getElementById('annuity-note').style.display = isAnnuity ? 'block' : 'none';
+    const pctPeriod = document.getElementById('f-pct-period');
+    pctPeriod.disabled = isAnnuity;
+    if (isAnnuity) pctPeriod.value = document.getElementById('f-od-period').value;
+  };
+  document.getElementById('f-method').addEventListener('change', syncMethodUI);
+  document.getElementById('f-od-period').addEventListener('change', () => {
+    if (document.getElementById('f-method').value === 'annuity') {
+      document.getElementById('f-pct-period').value = document.getElementById('f-od-period').value;
+    }
+  });
+  syncMethodUI();
 
   document.getElementById('btn-calc').addEventListener('click', doCalculate);
   document.getElementById('btn-export').addEventListener('click', exportExcel);
