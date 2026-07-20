@@ -229,7 +229,7 @@
         <option value="equal" selected>Равнодолевой (равные доли ОД)</option>
         <option value="annuity">Аннуитетный (равный платёж)</option>
       </select>
-      <div class="field-note" id="annuity-note" style="display:none;">В аннуитетном режиме ОД и % платятся одной суммой по единой периодичности (см. «Периодичность погашения ОД» — поле «%» ниже отключается и синхронизируется с ним). Платёж пересчитывается заново при выходе из льготы по ОД, при смене ставки (2-я/3-я) и после ручной суммы ОД — как переамортизация в реальных аннуитетных продуктах.</div>
+      <div class="field-note" id="annuity-note" style="display:none;">В аннуитетном режиме константный платёж считается по датам погашения ОД (поле «Периодичность погашения ОД»); поле «Периодичность погашения %» остаётся активным и может отличаться. Платёж пересчитывается заново при выходе из льготы по ОД, при смене ставки (2-я/3-я) и после ручной суммы ОД — как переамортизация в реальных аннуитетных продуктах. Проценты считаются по конвенции 30E/360 (30 дней в месяце, база 360).</div>
 
       <div class="field-row">
         <div>
@@ -915,10 +915,7 @@ function readParams() {
     termMonths: parseInt(document.getElementById('f-term').value, 10),
     baseDays: parseFloat(document.getElementById('f-base-days').value),
     odPeriodicity,
-    // В аннуитете ОД и % всегда идут одной периодичностью, независимо от того,
-    // что осталось в (отключённом) поле «%» — форсируем совпадение здесь тоже,
-    // на случай рассинхронизации UI.
-    pctPeriodicity: method === 'annuity' ? odPeriodicity : document.getElementById('f-pct-period').value,
+    pctPeriodicity: document.getElementById('f-pct-period').value,
     poolMethod: document.getElementById('f-pool-method').value,
     feePct: parseFloat(document.getElementById('f-fee-pct').value),
     feeFix: parseFloat(document.getElementById('f-fee-fix').value),
@@ -1188,16 +1185,8 @@ function init() {
   const syncMethodUI = () => {
     const isAnnuity = document.getElementById('f-method').value === 'annuity';
     document.getElementById('annuity-note').style.display = isAnnuity ? 'block' : 'none';
-    const pctPeriod = document.getElementById('f-pct-period');
-    pctPeriod.disabled = isAnnuity;
-    if (isAnnuity) pctPeriod.value = document.getElementById('f-od-period').value;
   };
   document.getElementById('f-method').addEventListener('change', syncMethodUI);
-  document.getElementById('f-od-period').addEventListener('change', () => {
-    if (document.getElementById('f-method').value === 'annuity') {
-      document.getElementById('f-pct-period').value = document.getElementById('f-od-period').value;
-    }
-  });
   syncMethodUI();
 
   document.getElementById('btn-calc').addEventListener('click', doCalculate);
