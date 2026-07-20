@@ -233,7 +233,7 @@
         <option value="equal" selected>Равнодолевой (равные доли ОД)</option>
         <option value="annuity">Аннуитетный (равный платёж)</option>
       </select>
-      <div class="field-note" id="annuity-note" style="display:none;">В аннуитетном режиме константный платёж считается по датам погашения ОД (поле «Периодичность погашения ОД»); поле «Периодичность погашения %» остаётся активным и может отличаться. Платёж пересчитывается заново при выходе из льготы по ОД, при смене ставки (2-я/3-я) и после ручной суммы ОД — как переамортизация в реальных аннуитетных продуктах. Проценты считаются по конвенции 30E/360 (30 дней в месяце, база 360).</div>
+      <div class="field-note" id="annuity-note" style="display:none;">В аннуитетном режиме константный платёж считается по датам погашения ОД (поле «Периодичность погашения ОД»); поле «Периодичность погашения %» остаётся активным и может отличаться. Платёж выравнивается по всему графику: смена ставки (2-я/3-я) учитывается заранее и не меняет размер платежа. Пересчёт происходит только после ручной суммы ОД (частичное досрочное погашение) — как переамортизация в реальных аннуитетных продуктах. Проценты считаются по конвенции 30E/360 (30 дней в месяце, база 360).</div>
 
       <div class="field-row">
         <div>
@@ -708,20 +708,16 @@ function generateSchedule(p) {
   // при котором «X минус проценты за период» на каждой не-льготной дате ОД от
   // startIndex до конца срока обнуляет остаток. Дни в периодах могут отличаться
   // от периода к периоду, поэтому закрытой формулы нет — решаем численно.
-  // Ставка на весь горизонт подбора "замораживается" на уровне, действующем в
-  // начале текущего режима: иначе решение заранее "подглядывало" бы в будущую
-  // смену ставки, которая всё равно позже перезапустит переамортизацию — и
-  // платёж до смены ставки оказался бы сглажен с учётом эффекта, который потом
-  // отбрасывается. Реальные начисления процентов в графике при этом считаются
-  // как обычно, с учётом фактической смены ставки (см. accrueInterest ниже).
+  // Используем те же начисления процентов, что и основной график (accrueInterest,
+  // с учётом второй/третьей ставки): решение "видит" будущую смену ставки заранее
+  // и один и тот же платёж действует по всему сроку без скачка на границе смены
+  // ставки — платёж выравнивается по всему графику.
   function solveAnnuityPayment(startBalance, startIndex) {
-    const frozenRate = rateActiveAt(monthDates[startIndex - 1]);
     const simulateFinalBalance = (X) => {
       let bal = startBalance;
       for (let j = startIndex; j <= N; j++) {
         if (!dueOD[j] || graceOD[j]) continue;
-        const days = dayCount(monthDates[j - 1], monthDates[j]);
-        bal -= (X - bal / p.baseDays * frozenRate * days);
+        bal -= (X - accrueInterest(bal, monthDates[j - 1], monthDates[j]));
       }
       return bal;
     };
@@ -742,7 +738,7 @@ function generateSchedule(p) {
 
   const rows = [];
   let balance = p.amount, bucket = 0, pool = 0, poolPeak = 0, sumPrincipal = 0, lastPctDueIndex = 0;
-  let annuityX = 0, needsResolve = true, prevActiveRate = null;
+  let annuityX = 0, needsResolve = true;
 
   for (let i = 1; i <= N; i++) {
     const balanceStart = balance;
@@ -750,12 +746,6 @@ function generateSchedule(p) {
     const periodStart = monthDates[i - 1];
     const periodEnd = monthDates[i];
     const interestAccrued = accrueInterest(balanceStart, periodStart, periodEnd);
-
-    // Смена действующей ставки между периодами — триггер переамортизации
-    // (пересчёта константного платежа) на оставшийся срок при аннуитете.
-    const curActiveRate = rateActiveAt(periodStart);
-    if (prevActiveRate !== null && curActiveRate !== prevActiveRate) needsResolve = true;
-    prevActiveRate = curActiveRate;
 
     // Вес ОД — сумма (не доля), направляемая на погашение в этом месяце (0 =
     // распределение остатка согласно типу графика: равными долями или
