@@ -904,17 +904,37 @@ function renderGraceTable() {
     tr.innerHTML = `
       <td class="month-col">${idx + 1}</td>
       <td><input type="checkbox" data-idx="${idx}" data-field="graceOD" ${m.graceOD ? 'checked' : ''}></td>
-      <td><input type="number" class="weight-input" data-idx="${idx}" data-field="weightOD" min="0" step="1000" value="${m.weightOD || 0}"></td>
+      <td><input type="text" inputmode="numeric" class="weight-input" data-idx="${idx}" data-field="weightOD" value="${m.weightOD || 0}"></td>
       <td><input type="checkbox" data-idx="${idx}" data-field="gracePct" ${m.gracePct ? 'checked' : ''}></td>
-      <td><input type="number" class="weight-input" data-idx="${idx}" data-field="weight" min="0" max="100" step="5" value="${m.weight}"></td>
+      <td><input type="text" inputmode="numeric" class="weight-input" data-idx="${idx}" data-field="weight" value="${m.weight}"></td>
     `;
     tbody.appendChild(tr);
   });
   tbody.querySelectorAll('input[type=checkbox]').forEach(cb => {
     cb.addEventListener('change', () => { monthsState[+cb.dataset.idx][cb.dataset.field] = cb.checked; });
   });
-  tbody.querySelectorAll('input[type=number]').forEach(inp => {
-    inp.addEventListener('input', () => { monthsState[+inp.dataset.idx][inp.dataset.field] = parseFloat(inp.value); });
+  tbody.querySelectorAll('input.weight-input').forEach(attachWeightInputBehavior);
+}
+
+// Столбцы "Вес ОД (ручн.)" / "Вес (ручн.), %": ведущий ноль убирается по мере
+// ввода цифр, при полном стирании поле само возвращается к "0", а Enter уводит
+// фокус на ту же графу в следующей строке — удобно вводить значения подряд.
+function attachWeightInputBehavior(inp) {
+  inp.addEventListener('input', () => {
+    const cursorFromEnd = inp.value.length - inp.selectionStart;
+    let v = inp.value.replace(/[^\d]/g, '');
+    v = v.replace(/^0+(?=\d)/, '');
+    if (v === '') v = '0';
+    inp.value = v;
+    const pos = Math.max(0, v.length - cursorFromEnd);
+    inp.setSelectionRange(pos, pos);
+    monthsState[+inp.dataset.idx][inp.dataset.field] = parseFloat(v) || 0;
+  });
+  inp.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    const next = document.querySelector(`input[data-field="${inp.dataset.field}"][data-idx="${+inp.dataset.idx + 1}"]`);
+    if (next) { next.focus(); next.select(); }
   });
 }
 
