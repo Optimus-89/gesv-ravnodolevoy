@@ -734,7 +734,7 @@ function generateSchedule(p) {
     state.bucket = bucketEnd;
     state.pool = poolEnd;
 
-    return { interestAccrued, interestPaid, poolAdd, bucketEnd, distribution, poolEnd, totalInterest: interestPaid + distribution };
+    return { interestAccrued, interestPaid, poolAdd, bucketStart, bucketEnd, distribution, poolEnd, totalInterest: interestPaid + distribution };
   }
 
   // Аннуитет: подбираем константный платёж X (методом бисекции, как для ГЭСВ),
@@ -784,7 +784,7 @@ function generateSchedule(p) {
       needsResolve = false;
     }
 
-    const { interestAccrued, interestPaid, poolAdd, bucketEnd, distribution, poolEnd, totalInterest } = stepInterest(state, i, balanceStart);
+    const { interestAccrued, interestPaid, poolAdd, bucketStart, bucketEnd, distribution, poolEnd, totalInterest } = stepInterest(state, i, balanceStart);
 
     // Вес ОД — сумма (не доля), направляемая на погашение в этом месяце (0 =
     // распределение остатка согласно типу графика: равными долями или
@@ -814,10 +814,20 @@ function generateSchedule(p) {
     if (duePct[i] && !gracePct[i]) lastPctDueIndex = i;
     sumPrincipal += principal;
 
+    // Для столбцов "...за ЛП" в интерфейсе и Excel показываем не только пул по
+    // льготе %, но и бакет — накопление процентов между несовпадающими датами
+    // ОД/% (периодичность реже месяца): lpAccrued — что скопилось за этот
+    // месяц (грант в пул при льготе, либо остаток бакета при ожидании due-даты);
+    // lpDistribution — что выплачено из ранее накопленного (пул или "старый"
+    // бакет, без учёта начисления самого текущего месяца).
+    const lpAccrued = poolAdd + bucketEnd;
+    const lpDistribution = distribution + ((duePct[i] && !gracePct[i]) ? bucketStart : 0);
+
     rows.push({
       i, date: monthDates[i], adjusted: wasAdjusted[i],
       dueOD: dueOD[i], duePct: duePct[i], graceOD: graceOD[i], gracePct: gracePct[i],
       balanceStart, principal, interestAccrued, totalInterest, poolAdd, distribution,
+      lpAccrued, lpDistribution,
       poolEnd, bucketEnd, fee, totalPayment, balanceEnd,
     });
 
@@ -983,8 +993,8 @@ function renderResults(result) {
       <td>${formatMoney(r.balanceStart)}</td>
       <td>${formatMoney(r.principal)}</td>
       <td>${formatMoney(r.totalInterest)}</td>
-      <td>${formatMoney(r.poolAdd)}</td>
-      <td>${formatMoney(r.distribution)}</td>
+      <td>${formatMoney(r.lpAccrued)}</td>
+      <td>${formatMoney(r.lpDistribution)}</td>
       <td>${formatMoney(r.totalPayment)}</td>
       <td>${formatMoney(r.balanceEnd)}</td>
     `;
@@ -1116,8 +1126,8 @@ function exportExcel() {
       numCell(r.principal, grace),
       numCell(r.interestAccrued, grace),
       numCell(r.totalInterest, grace),
-      numCell(r.poolAdd, grace),
-      numCell(r.distribution, grace),
+      numCell(r.lpAccrued, grace),
+      numCell(r.lpDistribution, grace),
       numCell(r.totalPayment, grace),
       numCell(r.balanceEnd, grace),
     ].join('') + '</Row>';
