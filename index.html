@@ -242,12 +242,17 @@
     border: 1px solid var(--border);
     border-radius: 4px;
   }
+  .schedule-wrap table { table-layout: fixed; }
   .schedule-wrap table thead th {
     position: sticky; top: 0;
     background: var(--navy);
     color: #fff;
     z-index: 1;
+    white-space: normal;
+    word-break: break-word;
+    line-height: 1.25;
   }
+  .schedule-wrap table thead th:first-child { white-space: nowrap; }
   .adj-badge {
     display: inline-block;
     margin-left: 3px;
@@ -467,6 +472,11 @@
       <h2>График платежей</h2>
       <div class="schedule-wrap">
         <table id="schedule-table">
+          <colgroup>
+            <col style="width:34px"><col style="width:100px"><col style="width:100px">
+            <col style="width:90px"><col style="width:85px"><col style="width:90px"><col style="width:95px"><col style="width:100px">
+            <col style="width:100px"><col style="width:100px">
+          </colgroup>
           <thead>
             <tr>
               <th>№</th><th>Дата</th><th>Остаток на начало</th>
