@@ -106,6 +106,9 @@
     outline-offset: 1px;
   }
   .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  /* Если подпись одной колонки переносится на 2 строки, а другой — нет, поля
+     съезжают по вертикали. Резервируем высоту под 2 строки подписи всегда. */
+  .field-row label { min-height: 2.6em; }
   .inline-field { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
   .inline-field label { margin: 0; flex: none; white-space: nowrap; }
   .inline-field input { width: 90px; flex: none; }
