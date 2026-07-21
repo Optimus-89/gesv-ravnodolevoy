@@ -364,7 +364,9 @@
             <option value="untilNextGrace">До следующего льготного периода</option>
             <option value="manual">Ручное распределение</option>
           </select>
-          <div class="field-note">«До следующего льготного периода»: пул равномерно распределяется на платежи до начала следующей льготы по %, а не до конца срока. «Ручное распределение»: вес, % — доля от <b>суммы, накопленной за этот льготный период</b> (100% = вся отложенная за льготу сумма), а не от текущего остатка. Например, 50% — это половина от изначально накопленного, 20% — пятая часть. На последней оставшейся дате уплаты % остаток пула списывается полностью автоматически.</div>
+          <div class="field-note">На последней оставшейся дате уплаты % остаток пула списывается полностью автоматически — независимо от выбранного способа.</div>
+          <div class="field-note" id="pool-note-untilNextGrace" style="display:none;">«До следующего льготного периода»: пул равномерно распределяется на платежи до начала следующей льготы по %, а не до конца срока.</div>
+          <div class="field-note" id="pool-note-manual" style="display:none;">«Ручное распределение»: вес, % — доля от <b>суммы, накопленной за этот льготный период</b> (100% = вся отложенная за льготу сумма), а не от текущего остатка. Например, 50% — это половина от изначально накопленного, 20% — пятая часть.</div>
         </div>
       </details>
 
@@ -1386,6 +1388,14 @@ function init() {
   };
   document.getElementById('f-method').addEventListener('change', syncMethodUI);
   syncMethodUI();
+
+  const syncPoolMethodUI = () => {
+    const poolMethod = document.getElementById('f-pool-method').value;
+    document.getElementById('pool-note-untilNextGrace').style.display = poolMethod === 'untilNextGrace' ? 'block' : 'none';
+    document.getElementById('pool-note-manual').style.display = poolMethod === 'manual' ? 'block' : 'none';
+  };
+  document.getElementById('f-pool-method').addEventListener('change', syncPoolMethodUI);
+  syncPoolMethodUI();
 
   document.getElementById('btn-calc').addEventListener('click', doCalculate);
   document.getElementById('btn-export').addEventListener('click', exportExcel);
