@@ -1006,9 +1006,9 @@ function renderGraceTable() {
     tr.innerHTML = `
       <td class="month-col">${idx + 1}</td>
       <td class="grace-cell"><input type="checkbox" data-idx="${idx}" data-field="graceOD" ${m.graceOD ? 'checked' : ''}></td>
-      <td><input type="text" inputmode="numeric" class="weight-input" data-idx="${idx}" data-field="weightOD" value="${m.weightOD || 0}"></td>
+      <td><input type="text" inputmode="numeric" class="weight-input" data-idx="${idx}" data-field="weightOD" value="${(Number(m.weightOD) || 0).toLocaleString('ru-RU')}"></td>
       <td class="grace-cell"><input type="checkbox" data-idx="${idx}" data-field="gracePct" ${m.gracePct ? 'checked' : ''}></td>
-      <td><input type="text" inputmode="numeric" class="weight-input" data-idx="${idx}" data-field="weight" value="${m.weight}"></td>
+      <td><input type="text" inputmode="numeric" class="weight-input" data-idx="${idx}" data-field="weight" value="${String(m.weight).replace('.', ',')}"></td>
     `;
     tbody.appendChild(tr);
   });
@@ -1027,29 +1027,59 @@ function renderGraceTable() {
       cb.dispatchEvent(new Event('change', { bubbles: true }));
     });
   });
-  tbody.querySelectorAll('input.weight-input').forEach(attachWeightInputBehavior);
+  tbody.querySelectorAll('input.weight-input[data-field="weightOD"]').forEach(attachWeightODInputBehavior);
+  tbody.querySelectorAll('input.weight-input[data-field="weight"]').forEach(attachWeightPctInputBehavior);
 }
 
-// Столбцы "Вес ОД (ручн.)" / "Вес (ручн.), %": ведущий ноль убирается по мере
-// ввода цифр, при полном стирании поле само возвращается к "0", а Enter уводит
-// фокус на ту же графу в следующей строке — удобно вводить значения подряд.
-function attachWeightInputBehavior(inp) {
+// Enter уводит фокус на ту же графу в следующей строке — удобно вводить
+// значения подряд, не отрывая рук от клавиатуры.
+function focusNextRowOnEnter(e) {
+  if (e.key !== 'Enter') return;
+  e.preventDefault();
+  const inp = e.target;
+  const next = document.querySelector(`input[data-field="${inp.dataset.field}"][data-idx="${+inp.dataset.idx + 1}"]`);
+  if (next) { next.focus(); next.select(); }
+}
+
+// "Вес ОД (ручн.)" — сумма, целое число с группировкой разрядов пробелом
+// (например "300 000"), как в поле "Сумма кредита". Ведущий ноль убирается по
+// мере ввода цифр, при полном стирании поле возвращается к "0".
+function attachWeightODInputBehavior(inp) {
   inp.addEventListener('input', () => {
     const cursorFromEnd = inp.value.length - inp.selectionStart;
-    let v = inp.value.replace(/[^\d]/g, '');
-    v = v.replace(/^0+(?=\d)/, '');
+    let digits = inp.value.replace(/[^\d]/g, '');
+    digits = digits.replace(/^0+(?=\d)/, '');
+    if (digits === '') digits = '0';
+    const num = parseInt(digits, 10) || 0;
+    const formatted = num.toLocaleString('ru-RU');
+    inp.value = formatted;
+    const pos = Math.max(0, formatted.length - cursorFromEnd);
+    inp.setSelectionRange(pos, pos);
+    monthsState[+inp.dataset.idx][inp.dataset.field] = num;
+  });
+  inp.addEventListener('keydown', focusNextRowOnEnter);
+}
+
+// "Вес (ручн.), %" — доля, поддерживает дробную часть (сотые, тысячные и
+// далее) через запятую или точку. Ведущий ноль перед следующей цифрой
+// убирается, но "0," на этом не ломается; при полном стирании — назад к "0".
+function attachWeightPctInputBehavior(inp) {
+  inp.addEventListener('input', () => {
+    const cursorFromEnd = inp.value.length - inp.selectionStart;
+    let v = inp.value.replace(/[^\d.,]/g, '');
+    const sep = v.match(/[.,]/);
+    if (sep) {
+      const i = v.indexOf(sep[0]);
+      v = v.slice(0, i + 1) + v.slice(i + 1).replace(/[.,]/g, '');
+    }
+    if (/^0\d/.test(v)) v = v.replace(/^0+(?=\d)/, '');
     if (v === '') v = '0';
     inp.value = v;
     const pos = Math.max(0, v.length - cursorFromEnd);
     inp.setSelectionRange(pos, pos);
-    monthsState[+inp.dataset.idx][inp.dataset.field] = parseFloat(v) || 0;
+    monthsState[+inp.dataset.idx][inp.dataset.field] = parseFloat(v.replace(',', '.')) || 0;
   });
-  inp.addEventListener('keydown', (e) => {
-    if (e.key !== 'Enter') return;
-    e.preventDefault();
-    const next = document.querySelector(`input[data-field="${inp.dataset.field}"][data-idx="${+inp.dataset.idx + 1}"]`);
-    if (next) { next.focus(); next.select(); }
-  });
+  inp.addEventListener('keydown', focusNextRowOnEnter);
 }
 
 function readParams() {
