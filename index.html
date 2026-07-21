@@ -112,7 +112,7 @@
      съезжают по вертикали. Прижимаем пару "подпись+поле" к нижнему краю
      колонки (grid растягивает обе колонки на равную высоту) — лишнее место
      уходит НАД подписью, а не между подписью и полем. */
-  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: stretch; }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: stretch; margin-top: 10px; }
   .field-row > div { display: flex; flex-direction: column; justify-content: flex-end; }
   .field-row label { margin-top: 0; }
   .inline-field { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
