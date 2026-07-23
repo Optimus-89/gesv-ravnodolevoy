@@ -452,6 +452,22 @@
         <button class="btn-secondary" id="btn-export" disabled>Экспорт в Excel</button>
       </div>
     </div>
+
+    <div class="panel">
+      <h2>Льготы по календарным месяцам</h2>
+      <div class="grace-table-wrap" style="max-height:420px;">
+        <table>
+          <colgroup>
+            <col><col style="width:80px"><col style="width:80px">
+          </colgroup>
+          <thead>
+            <tr><th>Месяц</th><th>Льгота ОД</th><th>Льгота %</th></tr>
+          </thead>
+          <tbody id="seasonal-grace-tbody"></tbody>
+        </table>
+      </div>
+      <div class="field-note">Отметка применяется сразу ко всем годам срока кредита: например, «Январь» для ОД проставит льготу по ОД на каждый январь в графике. Точечные правки в таблице выше после этого можно вносить вручную — обратной синхронизации нет.</div>
+    </div>
   </div>
 
   <!-- RIGHT COLUMN -->
@@ -1085,6 +1101,50 @@ function renderGraceTable() {
   tbody.querySelectorAll('input.weight-input[data-field="weight"]').forEach(attachWeightPctInputBehavior);
 }
 
+const CALENDAR_MONTH_NAMES = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+
+// Разово проставляет/снимает льготу (ОД или %) на всех месяцах графика, чьи
+// фактические даты попадают в указанный календарный месяц — то есть сразу на
+// каждый год срока. Работает по текущим дате выдачи/дню платежа на момент
+// клика; дальнейшая правка конкретных месяцев в таблице выше не откатывается
+// автоматически, если потом снова щёлкнуть по этому чекбоксу.
+function applySeasonalGrace(calendarMonth, field, checked) {
+  const issueDate = parseDateField('f-issue-date');
+  if (!issueDate) return;
+  const paymentDayVal = document.getElementById('f-payment-day').value;
+  const paymentDay = paymentDayVal ? parseInt(paymentDayVal, 10) : null;
+  const graceField = field === 'od' ? 'graceOD' : 'gracePct';
+  monthsState.forEach((m, idx) => {
+    const raw = addMonthsClamped(issueDate, idx + 1, paymentDay);
+    if (raw.getMonth() === calendarMonth) m[graceField] = checked;
+  });
+  renderGraceTable();
+}
+
+function renderSeasonalGraceTable() {
+  const tbody = document.getElementById('seasonal-grace-tbody');
+  tbody.innerHTML = '';
+  CALENDAR_MONTH_NAMES.forEach((name, idx) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="text-align:left;">${name}</td>
+      <td class="grace-cell"><input type="checkbox" data-month="${idx}" data-field="od"></td>
+      <td class="grace-cell"><input type="checkbox" data-month="${idx}" data-field="pct"></td>
+    `;
+    tbody.appendChild(tr);
+  });
+  tbody.querySelectorAll('input[type=checkbox]').forEach(cb => {
+    cb.addEventListener('change', () => applySeasonalGrace(+cb.dataset.month, cb.dataset.field, cb.checked));
+  });
+  tbody.querySelectorAll('td.grace-cell').forEach(td => {
+    td.addEventListener('click', () => {
+      const cb = td.querySelector('input[type=checkbox]');
+      cb.checked = !cb.checked;
+      cb.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+  });
+}
+
 // Enter уводит фокус на ту же графу в следующей строке — удобно вводить
 // значения подряд, не отрывая рук от клавиатуры.
 function focusNextRowOnEnter(e) {
@@ -1407,6 +1467,7 @@ function init() {
   attachRateToggle('f-rate3-enabled', 'f-rate3-content');
 
   rebuildGraceTable(12);
+  renderSeasonalGraceTable();
   syncEndDateFromTerm();
 
   document.getElementById('f-term').addEventListener('change', (e) => {
