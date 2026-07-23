@@ -351,7 +351,10 @@
         <button class="btn-primary" id="btn-calc">Рассчитать</button>
         <button class="btn-secondary" id="btn-export" disabled>Экспорт в Excel</button>
       </div>
+      <div class="error-block" id="error-block"></div>
+    </div>
 
+    <div class="panel">
       <details class="accordion">
         <summary>Периодичность и распределение %</summary>
         <div class="accordion-body">
@@ -392,7 +395,9 @@
           <div class="field-note" id="pool-note-manual" style="display:none;">«Ручное распределение»: вес, % — доля от <b>суммы, накопленной за этот льготный период</b> (100% = вся отложенная за льготу сумма), а не от текущего остатка. Например, 50% — это половина от изначально накопленного, 20% — пятая часть.</div>
         </div>
       </details>
+    </div>
 
+    <div class="panel">
       <details class="accordion">
         <summary>Дополнительные ставки (2-я / 3-я)</summary>
         <div class="accordion-body">
@@ -435,8 +440,6 @@
           </fieldset>
         </div>
       </details>
-
-      <div class="error-block" id="error-block"></div>
     </div>
 
     <div class="panel">
