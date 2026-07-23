@@ -14,6 +14,8 @@
     --header-green-dark: #0f6b3d;
     --terracotta: #c1552c;
     --terracotta-dark: #9c4322;
+    --field-yellow: #ffcc00;
+    --field-yellow-dark: #d9ad00;
     --bg: #eef1f5;
     --panel: #ffffff;
     --border: #d8dee6;
@@ -227,12 +229,12 @@
   .gesv-card {
     text-align: center;
     padding: 26px 16px;
-    background: linear-gradient(135deg, var(--terracotta) 0%, var(--terracotta-dark) 100%);
-    border-color: var(--terracotta-dark);
+    background: linear-gradient(135deg, var(--field-yellow) 0%, var(--field-yellow-dark) 100%);
+    border-color: var(--field-yellow-dark);
   }
-  .gesv-value { font-size: 46px; font-weight: 700; color: #fff; letter-spacing: 0.2px; }
+  .gesv-value { font-size: 46px; font-weight: 700; color: var(--navy); letter-spacing: 0.2px; }
   .gesv-label {
-    color: rgba(255,255,255,0.75); font-size: 11.5px; margin-top: 6px;
+    color: rgba(11,42,74,0.75); font-size: 11.5px; margin-top: 6px;
     text-transform: uppercase; letter-spacing: 0.5px;
   }
 
@@ -255,8 +257,8 @@
   .schedule-wrap table { table-layout: fixed; }
   .schedule-wrap table thead th {
     position: sticky; top: 0;
-    background: var(--terracotta);
-    color: #fff;
+    background: var(--field-yellow);
+    color: var(--navy);
     z-index: 1;
     white-space: normal;
     word-break: break-word;
