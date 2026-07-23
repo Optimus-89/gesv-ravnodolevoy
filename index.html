@@ -338,7 +338,6 @@
         <option value="equal" selected>Равнодолевой (равные доли ОД)</option>
         <option value="annuity">Аннуитетный (равный платёж)</option>
       </select>
-      <div class="field-note" id="annuity-note" style="display:none;">В аннуитетном режиме константный платёж считается по датам погашения ОД (поле «Периодичность погашения ОД»); поле «Периодичность погашения %» остаётся активным и может отличаться. Платёж выравнивается по всему графику: смена ставки (2-я/3-я) учитывается заранее и не меняет размер платежа. Пересчёт происходит только после ручной суммы ОД (частичное досрочное погашение) — как переамортизация в реальных аннуитетных продуктах. Проценты считаются по конвенции 30E/360 (30 дней в месяце, база 360).</div>
 
       <div class="field-row">
         <div>
@@ -1498,12 +1497,6 @@ function init() {
   document.getElementById('f-end-date').addEventListener('change', syncTermFromEndDate);
   document.getElementById('f-issue-date').addEventListener('change', syncEndDateFromTerm);
 
-  const syncMethodUI = () => {
-    const isAnnuity = document.getElementById('f-method').value === 'annuity';
-    document.getElementById('annuity-note').style.display = isAnnuity ? 'block' : 'none';
-  };
-  document.getElementById('f-method').addEventListener('change', syncMethodUI);
-  syncMethodUI();
 
   const syncPoolMethodUI = () => {
     const poolMethod = document.getElementById('f-pool-method').value;
