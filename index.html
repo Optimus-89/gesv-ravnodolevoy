@@ -131,6 +131,7 @@
   .inline-field label { margin: 0; flex: none; white-space: nowrap; }
   .inline-field input { width: 90px; flex: none; }
   .field-note { font-size: 11.5px; color: var(--text-muted); margin-top: 4px; }
+  .inline-field .field-note-inline { margin-top: 0; flex: 1; min-width: 0; white-space: normal; }
 
   fieldset { border: 1px solid var(--border); border-radius: 6px; margin: 12px 0 0; padding: 10px 10px 12px; }
   legend { font-size: 12px; color: var(--text-muted); padding: 0 4px; }
@@ -338,8 +339,8 @@
       <div class="inline-field">
         <label for="f-payment-day">День платежа</label>
         <input type="number" id="f-payment-day" min="1" max="31" step="1">
+        <div class="field-note field-note-inline">По умолчанию — сегодняшнее число</div>
       </div>
-      <div class="field-note">По умолчанию — сегодняшнее число</div>
 
       <label class="f-method-label">Тип графика</label>
       <div class="radio-group">
