@@ -98,10 +98,13 @@
   label { display: block; font-size: 12.5px; color: var(--text-muted); margin: 10px 0 3px; font-weight: 500; }
   label:first-child { margin-top: 0; }
   label[for="f-amount"], label[for="f-rate"], label[for="f-term"], label[for="f-issue-date"],
-  label[for="f-end-date"], label[for="f-payment-day"], label[for="f-method"], label[for="f-fee-pct"],
+  label[for="f-end-date"], label[for="f-payment-day"], .f-method-label, label[for="f-fee-pct"],
   label[for="f-fee-fix"] {
     color: #2F4F4F;
   }
+  .radio-group { display: flex; flex-direction: column; gap: 6px; margin: 4px 0 10px; }
+  .radio-option { display: flex; align-items: center; gap: 6px; font-weight: 400; font-size: 13.5px; color: var(--text); cursor: pointer; margin: 0; text-transform: none; }
+  .radio-option input[type="radio"] { cursor: pointer; margin: 0; }
   .accordion-body > label:first-child { margin-top: 10px; }
   input[type=number], input[type=text], input[type=date], select {
     width: 100%;
@@ -338,11 +341,11 @@
       </div>
       <div class="field-note">По умолчанию — сегодняшнее число</div>
 
-      <label for="f-method">Тип графика</label>
-      <select id="f-method">
-        <option value="equal" selected>Равнодолевой (равные доли ОД)</option>
-        <option value="annuity">Аннуитетный (равный платёж)</option>
-      </select>
+      <label class="f-method-label">Тип графика</label>
+      <div class="radio-group">
+        <label class="radio-option"><input type="radio" name="f-method" id="f-method-equal" value="equal" checked> Равнодолевой (равные доли ОД)</label>
+        <label class="radio-option"><input type="radio" name="f-method" id="f-method-annuity" value="annuity"> Аннуитетный (равный платёж)</label>
+      </div>
 
       <div class="field-row">
         <div>
@@ -1216,9 +1219,11 @@ function attachWeightPctInputBehavior(inp) {
   inp.addEventListener('keydown', focusNextRowOnEnter);
 }
 
+const METHOD_LABELS = { equal: 'Равнодолевой (равные доли ОД)', annuity: 'Аннуитетный (равный платёж)' };
+
 function readParams() {
   const dateStr = document.getElementById('f-issue-date').value;
-  const method = document.getElementById('f-method').value;
+  const method = document.querySelector('input[name="f-method"]:checked').value;
   const odPeriodicity = document.getElementById('f-od-period').value;
   return {
     method,
@@ -1307,7 +1312,7 @@ function doCalculate() {
   }
   result.params = params;
   result.labels = {
-    method: document.getElementById('f-method').selectedOptions[0].textContent,
+    method: METHOD_LABELS[document.querySelector('input[name="f-method"]:checked').value],
     odPeriodicity: document.getElementById('f-od-period').selectedOptions[0].textContent,
     pctPeriodicity: document.getElementById('f-pct-period').selectedOptions[0].textContent,
     poolMethod: document.getElementById('f-pool-method').selectedOptions[0].textContent,
