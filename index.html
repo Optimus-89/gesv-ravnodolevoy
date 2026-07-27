@@ -513,6 +513,7 @@
 
     <div class="panel">
       <h2>График платежей</h2>
+      <div class="field-note" id="schedule-end-date-note"></div>
       <div class="schedule-wrap">
         <table id="schedule-table">
           <colgroup>
@@ -1270,6 +1271,10 @@ function renderResults(result) {
     ? 'Ошибка расчёта'
     : (result.gesv * 100).toFixed(2) + '%';
 
+  const p = result.params;
+  document.getElementById('schedule-end-date-note').textContent =
+    'Дата окончания кредита: ' + formatDateRu(addMonthsClamped(p.issueDate, p.termMonths));
+
   setTile('principal', result.checks.sumPrincipal, false);
   setTile('pool', result.checks.poolEnd, true);
   setTile('bucket', result.checks.bucketEnd, true);
@@ -1309,6 +1314,7 @@ function doCalculate() {
     document.getElementById('gesv-value').textContent = '—';
     document.querySelectorAll('.tile').forEach(t => { t.classList.remove('ok', 'bad'); t.querySelector('.tile-value').textContent = '—'; });
     document.getElementById('schedule-tbody').innerHTML = '<tr><td colspan="10" class="empty-hint">Нажмите «Рассчитать», чтобы увидеть график</td></tr>';
+    document.getElementById('schedule-end-date-note').textContent = '';
     return;
   }
   result.params = params;
