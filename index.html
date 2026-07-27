@@ -860,10 +860,11 @@ function generateSchedule(p) {
   const monthDates = [p.issueDate];
   const wasAdjusted = [false];
   for (let i = 1; i <= N; i++) {
-    // Дата окончания (последний месяц срока) всегда привязана к дню даты
-    // выдачи и не сдвигается днём платежа — тот применяется только к
-    // промежуточным датам графика.
-    const raw = i === N ? addMonthsClamped(p.issueDate, i) : addMonthsClamped(p.issueDate, i, p.paymentDay);
+    // Дата окончания (последний месяц срока) берётся из фактического поля
+    // «Дата окончания кредита» (а не пересчитывается заново от даты выдачи,
+    // иначе округление срока до целых месяцев могло его исказить) и не
+    // сдвигается днём платежа — тот применяется только к промежуточным датам.
+    const raw = i === N ? (p.endDate || addMonthsClamped(p.issueDate, i)) : addMonthsClamped(p.issueDate, i, p.paymentDay);
     const adj = nextWorkday(raw, calendar.isNonWorking);
     monthDates.push(adj);
     wasAdjusted.push(adj.getTime() !== raw.getTime());
@@ -1231,6 +1232,7 @@ function readParams() {
     amount: parseThousands(document.getElementById('f-amount').value),
     ratePct: parseFloat(document.getElementById('f-rate').value),
     issueDate: dateStr ? new Date(dateStr + 'T00:00:00') : null,
+    endDate: parseDateField('f-end-date'),
     termMonths: parseInt(document.getElementById('f-term').value, 10),
     paymentDay: document.getElementById('f-payment-day').value ? parseInt(document.getElementById('f-payment-day').value, 10) : null,
     baseDays: parseFloat(document.getElementById('f-base-days').value),
@@ -1358,7 +1360,7 @@ function exportExcel() {
   }
   leftRows.push({ label: 'Дата выдачи', value: formatDateRu(p.issueDate), type: 'str' });
   if (p.paymentDay) leftRows.push({ label: 'День платежа', value: p.paymentDay, type: 'num' });
-  leftRows.push({ label: 'Дата окончания кредита', value: formatDateRu(addMonthsClamped(p.issueDate, p.termMonths)), type: 'str' });
+  leftRows.push({ label: 'Дата окончания кредита', value: formatDateRu(p.endDate || addMonthsClamped(p.issueDate, p.termMonths)), type: 'str' });
   leftRows.push({ label: 'Срок, мес.', value: p.termMonths, type: 'num' });
   leftRows.push({ label: 'База дней в году', value: p.baseDays, type: 'num' });
   leftRows.push({ label: 'Периодичность погашения ОД', value: labels.odPeriodicity, type: 'str' });
