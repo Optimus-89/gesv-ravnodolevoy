@@ -102,7 +102,7 @@
   label[for="f-fee-fix"] {
     color: #004d39;
   }
-  .radio-group { display: flex; flex-direction: column; gap: 6px; margin: 4px 0 10px; }
+  .radio-group { display: flex; flex-direction: row; gap: 18px; margin: 4px 0 10px; }
   .radio-option { display: flex; align-items: center; gap: 6px; font-weight: 400; font-size: 13.5px; color: var(--text); cursor: pointer; margin: 0; text-transform: none; }
   .radio-option input[type="radio"] { cursor: pointer; margin: 0; }
   .accordion-body > label:first-child { margin-top: 10px; }
@@ -343,8 +343,8 @@
 
       <label class="f-method-label">Тип графика</label>
       <div class="radio-group">
-        <label class="radio-option"><input type="radio" name="f-method" id="f-method-equal" value="equal" checked> Равнодолевой (равные доли ОД)</label>
-        <label class="radio-option"><input type="radio" name="f-method" id="f-method-annuity" value="annuity"> Аннуитетный (равный платёж)</label>
+        <label class="radio-option"><input type="radio" name="f-method" id="f-method-equal" value="equal" checked> Равнодолевой</label>
+        <label class="radio-option"><input type="radio" name="f-method" id="f-method-annuity" value="annuity"> Аннуитетный</label>
       </div>
 
       <div class="field-row">
