@@ -411,6 +411,45 @@
 
     <div class="panel">
       <details class="accordion">
+        <summary>Льготы по месяцам</summary>
+        <div class="accordion-body">
+          <div class="grace-table-wrap">
+            <table>
+              <colgroup>
+                <col style="width:42px"><col style="width:64px"><col><col style="width:64px"><col>
+              </colgroup>
+              <thead>
+                <tr><th>Мес.</th><th>Льгота ОД</th><th>Вес ОД (ручн.)</th><th>Льгота %</th><th>Вес (ручн.), %</th></tr>
+              </thead>
+              <tbody id="grace-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </details>
+    </div>
+
+    <div class="panel">
+      <details class="accordion">
+        <summary>Льготы по календарным месяцам</summary>
+        <div class="accordion-body">
+          <div class="grace-table-wrap" style="max-height:420px;">
+            <table>
+              <colgroup>
+                <col><col style="width:80px"><col style="width:80px">
+              </colgroup>
+              <thead>
+                <tr><th>Месяц</th><th>Льгота ОД</th><th>Льгота %</th></tr>
+              </thead>
+              <tbody id="seasonal-grace-tbody"></tbody>
+            </table>
+          </div>
+          <div class="field-note">Отметка применяется сразу ко всем годам срока кредита: например, «Январь» для ОД проставит льготу по ОД на каждый январь в графике. Точечные правки в таблице выше после этого можно вносить вручную — обратной синхронизации нет.</div>
+        </div>
+      </details>
+    </div>
+
+    <div class="panel">
+      <details class="accordion">
         <summary>Дополнительные ставки (2-я / 3-я)</summary>
         <div class="accordion-body">
           <fieldset>
@@ -450,45 +489,6 @@
               <div class="field-note">Работает так же, как вторая ставка: начиная с указанной даты третья ставка <b>заменяет</b> ту, что действовала до неё (основную или вторую). Проценты внутри периода переключения считаются раздельно по дням.</div>
             </div>
           </fieldset>
-        </div>
-      </details>
-    </div>
-
-    <div class="panel">
-      <details class="accordion">
-        <summary>Льготы по месяцам</summary>
-        <div class="accordion-body">
-          <div class="grace-table-wrap">
-            <table>
-              <colgroup>
-                <col style="width:42px"><col style="width:64px"><col><col style="width:64px"><col>
-              </colgroup>
-              <thead>
-                <tr><th>Мес.</th><th>Льгота ОД</th><th>Вес ОД (ручн.)</th><th>Льгота %</th><th>Вес (ручн.), %</th></tr>
-              </thead>
-              <tbody id="grace-tbody"></tbody>
-            </table>
-          </div>
-        </div>
-      </details>
-    </div>
-
-    <div class="panel">
-      <details class="accordion">
-        <summary>Льготы по календарным месяцам</summary>
-        <div class="accordion-body">
-          <div class="grace-table-wrap" style="max-height:420px;">
-            <table>
-              <colgroup>
-                <col><col style="width:80px"><col style="width:80px">
-              </colgroup>
-              <thead>
-                <tr><th>Месяц</th><th>Льгота ОД</th><th>Льгота %</th></tr>
-              </thead>
-              <tbody id="seasonal-grace-tbody"></tbody>
-            </table>
-          </div>
-          <div class="field-note">Отметка применяется сразу ко всем годам срока кредита: например, «Январь» для ОД проставит льготу по ОД на каждый январь в графике. Точечные правки в таблице выше после этого можно вносить вручную — обратной синхронизации нет.</div>
         </div>
       </details>
     </div>
