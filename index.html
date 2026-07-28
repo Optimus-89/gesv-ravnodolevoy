@@ -856,10 +856,7 @@ function generateSchedule(p) {
   const maxYear = p.issueDate.getFullYear() + Math.ceil(N / 12) + 2;
   const calendar = buildCalendar(minYear, maxYear);
 
-  // Даты месяцев 0..N-1 (0 = дата выдачи, не переносится согласно 6.5). Правило
-  // начала периода: если до первого платежа (i=1) меньше 15 дней, он всё равно
-  // ставится строго на плановую дату (по «Дню платежа») — особого случая не
-  // требуется, так как это и так поведение по умолчанию.
+  // Даты месяцев 0..N-1 (0 = дата выдачи, не переносится согласно 6.5).
   const monthDates = [p.issueDate];
   const wasAdjusted = [false];
   for (let i = 1; i < N; i++) {
@@ -867,6 +864,16 @@ function generateSchedule(p) {
     const adj = nextWorkday(raw, calendar.isNonWorking);
     monthDates.push(adj);
     wasAdjusted.push(adj.getTime() !== raw.getTime());
+  }
+
+  // Правило начала периода: если до первого планового платежа (i=1) меньше
+  // 15 дней от даты выдачи, он сливается со вторым — первым фактическим
+  // платежом становится плановая дата через месяц (i=2), а проценты за этот
+  // (более длинный) первый период начисляются от самой даты выдачи.
+  let firstRealIndex = 1;
+  if (N >= 2 && daysBetween(p.issueDate, monthDates[1]) < 15) {
+    monthDates[1] = p.issueDate;
+    firstRealIndex = 2;
   }
 
   // Дата окончания кредита — фактическая дата погашения по сроку, не зависит
@@ -992,7 +999,7 @@ function generateSchedule(p) {
   const state = { pool: 0, poolPeak: 0 };
   let annuityX = 0, needsResolve = true;
 
-  for (let i = 1; i <= N; i++) {
+  for (let i = firstRealIndex; i <= N; i++) {
     const balanceStart = balance;
 
     // Резолвим аннуитетный платёж до начисления процентов этого периода — по
