@@ -350,6 +350,18 @@
 
       <div class="field-row">
         <div>
+          <label for="f-grace-od-start">Льгота по ОД, мес.</label>
+          <input type="number" id="f-grace-od-start" value="0" min="0" step="1">
+        </div>
+        <div>
+          <label for="f-grace-pct-start">Льгота по %, мес.</label>
+          <input type="number" id="f-grace-pct-start" value="0" min="0" step="1">
+        </div>
+      </div>
+      <div class="field-note">Действует с даты начала займа: указанное число месяцев с начала графика отмечается льготным. Точечные правки в блоке «Льготы по месяцам» после этого можно вносить вручную — обратной синхронизации нет.</div>
+
+      <div class="field-row">
+        <div>
           <label for="f-fee-pct">Сумма комиссии %</label>
           <input type="text" inputmode="decimal" id="f-fee-pct" value="0">
         </div>
@@ -1189,6 +1201,17 @@ function applySeasonalGrace(calendarMonth, field, checked) {
   renderGraceTable();
 }
 
+// Разово проставляет льготу (ОД или %) на первые N месяцев графика, считая от
+// даты начала займа. Как и «Льготы по календарным месяцам», это одноразовое
+// действие: точечные правки в таблице «Льготы по месяцам» после этого не
+// откатываются автоматически при повторном вводе.
+function applyStartGrace(field, months) {
+  const graceField = field === 'od' ? 'graceOD' : 'gracePct';
+  const count = Math.max(0, Math.min(months, monthsState.length));
+  for (let idx = 0; idx < count; idx++) monthsState[idx][graceField] = true;
+  renderGraceTable();
+}
+
 function renderSeasonalGraceTable() {
   const tbody = document.getElementById('seasonal-grace-tbody');
   tbody.innerHTML = '';
@@ -1552,6 +1575,15 @@ function init() {
 
   document.getElementById('f-end-date').addEventListener('change', syncTermFromEndDate);
   document.getElementById('f-issue-date').addEventListener('change', syncEndDateFromTerm);
+
+  document.getElementById('f-grace-od-start').addEventListener('change', (e) => {
+    const months = parseInt(e.target.value, 10);
+    if (Number.isFinite(months) && months > 0) applyStartGrace('od', months);
+  });
+  document.getElementById('f-grace-pct-start').addEventListener('change', (e) => {
+    const months = parseInt(e.target.value, 10);
+    if (Number.isFinite(months) && months > 0) applyStartGrace('pct', months);
+  });
 
 
   const syncPoolMethodUI = () => {
