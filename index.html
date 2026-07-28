@@ -884,29 +884,38 @@ function generateSchedule(p) {
   // Правило завершения периода: если разрыв между предпоследним платежом и
   // датой окончания превышает 45 дней, вставляем ещё один плановый платёж (по
   // «Дню платежа») перед итоговой датой погашения — вместо одного аномально
-  // длинного периода получаем обычный плановый платёж + отдельный платёж на
-  // дату окончания (нулевой, так как остаток уже погашен плановым платежом).
+  // длинного периода получаем обычный плановый платёж (обычная доля ОД) и
+  // отдельный платёж на дату окончания, закрывающий фактический остаток.
   let extraTailRow = false;
   if (N >= 2 && daysBetween(monthDates[N - 1], trueEndAdj) > 45) {
     const regRaw = addMonthsClamped(p.issueDate, N, p.paymentDay);
     const regAdj = nextWorkday(regRaw, calendar.isNonWorking);
     monthDates.push(regAdj);
     wasAdjusted.push(regAdj.getTime() !== regRaw.getTime());
+    monthDates.push(trueEndAdj);
+    wasAdjusted.push(trueEndAdj.getTime() !== trueEndRaw.getTime());
     extraTailRow = true;
   } else {
     monthDates.push(trueEndAdj);
     wasAdjusted.push(trueEndAdj.getTime() !== trueEndRaw.getTime());
   }
 
+  // M — фактическое число платёжных дат (N, либо N+1, если сработало правило
+  // завершения периода выше). Периодичность (интервалы ОД/%) считается от
+  // исходного срока N — сама вставка лишней даты не меняет заданную частоту.
+  const M = extraTailRow ? N + 1 : N;
+
   const intervalOD = resolveInterval(p.odPeriodicity, N);
   const intervalPct = resolveInterval(p.pctPeriodicity, N);
 
   const dueOD = [false], duePct = [false];
-  for (let i = 1; i <= N; i++) {
-    dueOD.push(i % intervalOD === 0 || i === N);
-    duePct.push(i % intervalPct === 0 || i === N);
+  for (let i = 1; i <= M; i++) {
+    dueOD.push(i % intervalOD === 0 || i === M);
+    duePct.push(i % intervalPct === 0 || i === M);
   }
 
+  // Льготы/веса настраиваются в UI только для исходных N месяцев — вставленная
+  // правилом завершения периода дата (N+1) льгот не имеет.
   const graceOD = [false], gracePct = [false], weight = [0], weightOD = [0];
   for (let i = 1; i <= N; i++) {
     const m = p.months[i - 1];
@@ -915,14 +924,15 @@ function generateSchedule(p) {
     weight.push((Number(m.weight) || 0) / 100);
     weightOD.push(Number(m.weightOD) || 0);
   }
+  if (extraTailRow) { graceOD.push(false); gracePct.push(false); weight.push(0); weightOD.push(0); }
 
   // Суффиксные суммы: сколько ещё не-льготных due-дат осталось, включая текущую
-  const remainingOD = new Array(N + 2).fill(0);
-  const remainingPct = new Array(N + 2).fill(0);
+  const remainingOD = new Array(M + 2).fill(0);
+  const remainingPct = new Array(M + 2).fill(0);
   // Тот же суффикс, но "обнуляется" на льготном месяце — даёт количество платежей
   // от текущей даты до начала следующего льготного периода по % (не считая его).
-  const remainingPctLocal = new Array(N + 2).fill(0);
-  for (let i = N; i >= 1; i--) {
+  const remainingPctLocal = new Array(M + 2).fill(0);
+  for (let i = M; i >= 1; i--) {
     remainingOD[i] = remainingOD[i + 1] + ((dueOD[i] && !graceOD[i]) ? 1 : 0);
     remainingPct[i] = remainingPct[i + 1] + ((duePct[i] && !gracePct[i]) ? 1 : 0);
     remainingPctLocal[i] = gracePct[i] ? 0 : (duePct[i] ? 1 : 0) + remainingPctLocal[i + 1];
@@ -973,7 +983,7 @@ function generateSchedule(p) {
     const simulateFinalBalance = (X) => {
       let bal = startBalance;
       const state = { pool: poolAtStart, poolPeak: poolPeakAtStart };
-      for (let j = startIndex; j <= N; j++) {
+      for (let j = startIndex; j <= M; j++) {
         const { totalInterest } = stepInterest(state, j, bal);
         if (dueOD[j] && !graceOD[j]) bal -= (X - totalInterest);
       }
@@ -995,11 +1005,11 @@ function generateSchedule(p) {
   }
 
   const rows = [];
-  let balance = p.amount, sumPrincipal = 0, lastPctDueIndex = 0;
+  let balance = p.amount, sumPrincipal = 0, lastPctDueRowIdx = -1;
   const state = { pool: 0, poolPeak: 0 };
   let annuityX = 0, needsResolve = true;
 
-  for (let i = firstRealIndex; i <= N; i++) {
+  for (let i = firstRealIndex; i <= M; i++) {
     const balanceStart = balance;
 
     // Резолвим аннуитетный платёж до начисления процентов этого периода — по
@@ -1036,7 +1046,7 @@ function generateSchedule(p) {
     const fee = 0;
     const totalPayment = principal + totalInterest + fee;
 
-    if (duePct[i] && !gracePct[i]) lastPctDueIndex = i;
+    if (duePct[i] && !gracePct[i]) lastPctDueRowIdx = rows.length;
     sumPrincipal += principal;
 
     rows.push({
@@ -1049,26 +1059,17 @@ function generateSchedule(p) {
     balance = balanceEnd;
   }
 
-  if (lastPctDueIndex === 0) lastPctDueIndex = N; // весь срок в льготе по % — контрольная точка последний месяц
+  if (lastPctDueRowIdx === -1) lastPctDueRowIdx = rows.length - 1; // весь срок в льготе по % — контрольная точка последняя строка
 
-  // Дополнительный платёж на дату окончания (правило завершения периода):
-  // остаток к этому моменту уже погашен плановым платежом выше, поэтому это
-  // нулевая по сумме строка — она лишь фиксирует фактическую дату окончания.
-  if (extraTailRow) {
-    const last = rows[rows.length - 1];
-    rows.push({
-      i: N + 1, date: trueEndAdj, adjusted: trueEndAdj.getTime() !== trueEndRaw.getTime(),
-      dueOD: true, duePct: true, graceOD: false, gracePct: false,
-      balanceStart: last.balanceEnd, principal: 0, interestAccrued: 0, totalInterest: 0,
-      poolAdd: 0, distribution: 0, poolEnd: last.poolEnd, bucketEnd: 0, fee: 0,
-      totalPayment: 0, balanceEnd: last.balanceEnd,
-    });
-  }
+  // Нумерация строк для отображения — по порядку в графике, а не по внутреннему
+  // индексу i (который может начинаться не с 1, если сработало правило начала
+  // периода выше).
+  rows.forEach((r, idx) => { r.i = idx + 1; });
 
   const checks = {
     sumPrincipal, principalDiff: sumPrincipal - p.amount,
-    poolEnd: rows[lastPctDueIndex - 1].poolEnd,
-    bucketEnd: rows[lastPctDueIndex - 1].bucketEnd,
+    poolEnd: rows[lastPctDueRowIdx].poolEnd,
+    bucketEnd: rows[lastPctDueRowIdx].bucketEnd,
     balanceEnd: rows[rows.length - 1].balanceEnd,
   };
 
