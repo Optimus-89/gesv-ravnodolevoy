@@ -856,18 +856,39 @@ function generateSchedule(p) {
   const maxYear = p.issueDate.getFullYear() + Math.ceil(N / 12) + 2;
   const calendar = buildCalendar(minYear, maxYear);
 
-  // Даты месяцев 0..N (0 = дата выдачи, не переносится согласно 6.5)
+  // Даты месяцев 0..N-1 (0 = дата выдачи, не переносится согласно 6.5). Правило
+  // начала периода: если до первого платежа (i=1) меньше 15 дней, он всё равно
+  // ставится строго на плановую дату (по «Дню платежа») — особого случая не
+  // требуется, так как это и так поведение по умолчанию.
   const monthDates = [p.issueDate];
   const wasAdjusted = [false];
-  for (let i = 1; i <= N; i++) {
-    // Дата окончания (последний месяц срока) берётся из фактического поля
-    // «Дата окончания кредита» (а не пересчитывается заново от даты выдачи,
-    // иначе округление срока до целых месяцев могло его исказить) и не
-    // сдвигается днём платежа — тот применяется только к промежуточным датам.
-    const raw = i === N ? (p.endDate || addMonthsClamped(p.issueDate, i)) : addMonthsClamped(p.issueDate, i, p.paymentDay);
+  for (let i = 1; i < N; i++) {
+    const raw = addMonthsClamped(p.issueDate, i, p.paymentDay);
     const adj = nextWorkday(raw, calendar.isNonWorking);
     monthDates.push(adj);
     wasAdjusted.push(adj.getTime() !== raw.getTime());
+  }
+
+  // Дата окончания кредита — фактическая дата погашения по сроку, не зависит
+  // от «Дня платежа» (см. поле «Дата окончания кредита»).
+  const trueEndRaw = p.endDate || addMonthsClamped(p.issueDate, N);
+  const trueEndAdj = nextWorkday(trueEndRaw, calendar.isNonWorking);
+
+  // Правило завершения периода: если разрыв между предпоследним платежом и
+  // датой окончания превышает 45 дней, вставляем ещё один плановый платёж (по
+  // «Дню платежа») перед итоговой датой погашения — вместо одного аномально
+  // длинного периода получаем обычный плановый платёж + отдельный платёж на
+  // дату окончания (нулевой, так как остаток уже погашен плановым платежом).
+  let extraTailRow = false;
+  if (N >= 2 && daysBetween(monthDates[N - 1], trueEndAdj) > 45) {
+    const regRaw = addMonthsClamped(p.issueDate, N, p.paymentDay);
+    const regAdj = nextWorkday(regRaw, calendar.isNonWorking);
+    monthDates.push(regAdj);
+    wasAdjusted.push(regAdj.getTime() !== regRaw.getTime());
+    extraTailRow = true;
+  } else {
+    monthDates.push(trueEndAdj);
+    wasAdjusted.push(trueEndAdj.getTime() !== trueEndRaw.getTime());
   }
 
   const intervalOD = resolveInterval(p.odPeriodicity, N);
@@ -1023,11 +1044,25 @@ function generateSchedule(p) {
 
   if (lastPctDueIndex === 0) lastPctDueIndex = N; // весь срок в льготе по % — контрольная точка последний месяц
 
+  // Дополнительный платёж на дату окончания (правило завершения периода):
+  // остаток к этому моменту уже погашен плановым платежом выше, поэтому это
+  // нулевая по сумме строка — она лишь фиксирует фактическую дату окончания.
+  if (extraTailRow) {
+    const last = rows[rows.length - 1];
+    rows.push({
+      i: N + 1, date: trueEndAdj, adjusted: trueEndAdj.getTime() !== trueEndRaw.getTime(),
+      dueOD: true, duePct: true, graceOD: false, gracePct: false,
+      balanceStart: last.balanceEnd, principal: 0, interestAccrued: 0, totalInterest: 0,
+      poolAdd: 0, distribution: 0, poolEnd: last.poolEnd, bucketEnd: 0, fee: 0,
+      totalPayment: 0, balanceEnd: last.balanceEnd,
+    });
+  }
+
   const checks = {
     sumPrincipal, principalDiff: sumPrincipal - p.amount,
     poolEnd: rows[lastPctDueIndex - 1].poolEnd,
     bucketEnd: rows[lastPctDueIndex - 1].bucketEnd,
-    balanceEnd: rows[N - 1].balanceEnd,
+    balanceEnd: rows[rows.length - 1].balanceEnd,
   };
 
   const feeAmount = p.amount * feePctFrac + p.feeFix;
