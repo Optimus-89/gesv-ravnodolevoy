@@ -350,11 +350,11 @@
       <div class="field-row">
         <div>
           <label for="f-grace-od-start">Льгота по ОД, мес.</label>
-          <input type="number" id="f-grace-od-start" value="0" min="0" step="1">
+          <input type="text" inputmode="numeric" autocomplete="off" id="f-grace-od-start" value="0">
         </div>
         <div>
           <label for="f-grace-pct-start">Льгота по %, мес.</label>
-          <input type="number" id="f-grace-pct-start" value="0" min="0" step="1">
+          <input type="text" inputmode="numeric" autocomplete="off" id="f-grace-pct-start" value="0">
         </div>
       </div>
 
@@ -651,6 +651,20 @@ function attachFeeFixBehavior(input) {
     const formatted = parseInt(digits, 10).toLocaleString('ru-RU');
     input.value = formatted;
     const pos = Math.max(0, formatted.length - cursorFromEnd);
+    input.setSelectionRange(pos, pos);
+  });
+}
+
+// Целое число месяцев (льгота с начала займа): ведущий ноль убирается по мере
+// ввода цифр, при полном стирании поле само возвращается к "0".
+function attachIntegerZeroTrimBehavior(input) {
+  input.addEventListener('input', () => {
+    const cursorFromEnd = input.value.length - input.selectionStart;
+    let digits = input.value.replace(/[^\d]/g, '');
+    digits = digits.replace(/^0+(?=\d)/, '');
+    if (digits === '') digits = '0';
+    input.value = digits;
+    const pos = Math.max(0, digits.length - cursorFromEnd);
     input.setSelectionRange(pos, pos);
   });
 }
@@ -1551,6 +1565,8 @@ function init() {
   attachThousandsFormatting(document.getElementById('f-amount'));
   attachFeeFixBehavior(document.getElementById('f-fee-fix'));
   attachFeePctBehavior(document.getElementById('f-fee-pct'));
+  attachIntegerZeroTrimBehavior(document.getElementById('f-grace-od-start'));
+  attachIntegerZeroTrimBehavior(document.getElementById('f-grace-pct-start'));
   attachMonthScroll(document.getElementById('f-issue-date'));
   attachMonthScroll(document.getElementById('f-end-date'));
   attachMonthScroll(document.getElementById('f-rate2-date'));
