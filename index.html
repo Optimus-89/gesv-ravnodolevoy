@@ -1594,6 +1594,7 @@ function exportExcel() {
     + columns + '\r\n'
     + infoXml + '\r\n' + headerRow + '\r\n' + disbursementRow + '\r\n' + bodyRows + '\r\n' + totalRow
     + '\r\n</Table>\r\n'
+    + '<WorksheetOptions xmlns="urn:schemas-microsoft-com:office:excel"><DoNotDisplayGridlines/></WorksheetOptions>\r\n'
     + `<AutoFilter x:Range="R${headerRowNum}C1:R${headerRowNum}C10" xmlns="urn:schemas-microsoft-com:office:excel"></AutoFilter>\r\n`
     + '</Worksheet>\r\n'
     + '</Workbook>';
