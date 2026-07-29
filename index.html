@@ -1415,16 +1415,16 @@ function exportExcel() {
   const p = lastResult.params;
   const labels = lastResult.labels;
   const checks = lastResult.checks;
+  const rows = lastResult.rows;
 
   const xlNum = (v) => Number(v.toFixed(6));
-  const numCell = (v, grace) => `<Cell ss:StyleID="${grace ? 'graceNum' : 'num'}"><Data ss:Type="Number">${xlNum(v)}</Data></Cell>`;
-  const intCell = (v, grace) => `<Cell ss:StyleID="${grace ? 'grace' : 'text'}"><Data ss:Type="Number">${v}</Data></Cell>`;
-  const strCell = (v, grace) => `<Cell ss:StyleID="${grace ? 'grace' : 'text'}"><Data ss:Type="String">${escapeXml(v)}</Data></Cell>`;
-  const dashCell = () => `<Cell ss:StyleID="text"><Data ss:Type="String">—</Data></Cell>`;
+  const numCell = (v, styleId) => `<Cell ss:StyleID="${styleId}"><Data ss:Type="Number">${xlNum(v)}</Data></Cell>`;
+  const intCell = (v, styleId) => `<Cell ss:StyleID="${styleId}"><Data ss:Type="Number">${v}</Data></Cell>`;
+  const strCell = (v, styleId) => `<Cell ss:StyleID="${styleId}"><Data ss:Type="String">${escapeXml(v)}</Data></Cell>`;
+  const dashCell = (styleId) => `<Cell ss:StyleID="${styleId}"><Data ss:Type="String">—</Data></Cell>`;
 
-  // ---- Параметры кредита (слева) и результаты расчёта (справа), в одной строке друг с другом ----
+  // ---- Параметры кредита (слева) и результаты расчёта (в центре) ----
   const leftRows = [];
-  leftRows.push({ title: 'Параметры кредита' });
   leftRows.push({ label: 'Тип графика', value: labels.method, type: 'str' });
   leftRows.push({ label: 'Сумма кредита', value: p.amount, type: 'num' });
   leftRows.push({ label: 'Ставка, % годовых', value: p.ratePct, type: 'num' });
@@ -1447,17 +1447,15 @@ function exportExcel() {
   leftRows.push({ label: 'Комиссия за выдачу, %', value: p.feePct, type: 'num' });
   leftRows.push({ label: 'Комиссия за выдачу, фикс.', value: p.feeFix, type: 'num' });
 
-  const rightRows = [];
-  rightRows.push({ title: 'Результаты расчёта' });
-  rightRows.push({ label: 'ГЭСВ', value: lastResult.gesv, type: 'pct' });
-  rightRows.push({ label: 'Погашено ОД', value: checks.sumPrincipal, type: 'num' });
-  rightRows.push({ label: 'Остаток пула', value: checks.poolEnd, type: 'num' });
-  rightRows.push({ label: 'Остаток бакета', value: checks.bucketEnd, type: 'num' });
-  rightRows.push({ label: 'Остаток долга', value: checks.balanceEnd, type: 'num' });
+  const midRows = [];
+  midRows.push({ label: 'ГЭСВ', value: lastResult.gesv, type: 'pct' });
+  midRows.push({ label: 'Погашено ОД', value: checks.sumPrincipal, type: 'num' });
+  midRows.push({ label: 'Остаток пула', value: checks.poolEnd, type: 'num' });
+  midRows.push({ label: 'Остаток бакета', value: checks.bucketEnd, type: 'num' });
+  midRows.push({ label: 'Остаток долга', value: checks.balanceEnd, type: 'num' });
 
   const infoCell = (row) => {
     if (!row) return '<Cell/><Cell/>';
-    if (row.title) return `<Cell ss:StyleID="sectionHeader" ss:MergeAcross="1"><Data ss:Type="String">${escapeXml(row.title)}</Data></Cell>`;
     const valueCell = row.type === 'num'
       ? `<Cell ss:StyleID="value"><Data ss:Type="Number">${xlNum(row.value)}</Data></Cell>`
       : row.type === 'pct'
@@ -1468,15 +1466,39 @@ function exportExcel() {
     return `<Cell ss:StyleID="label"><Data ss:Type="String">${escapeXml(row.label)}</Data></Cell>${valueCell}`;
   };
 
-  const infoRowCount = Math.max(leftRows.length, rightRows.length);
+  // ---- Плитки блока «График платежей» ----
+  const totalPaymentSum = rows.reduce((s, r) => s + r.totalPayment, 0);
+  const totalInterestSum = rows.reduce((s, r) => s + r.totalInterest, 0);
+  const tiles = [
+    { label: 'Общий платёж', value: totalPaymentSum, style: 'green' },
+    { label: 'Погашение ОД', value: checks.sumPrincipal, style: 'blue' },
+    { label: 'Начисленные проценты', value: totalInterestSum, style: 'orange' },
+    { label: 'Количество платежей', value: rows.length, style: 'gray', isInt: true },
+  ];
+  const tileLabelCell = (t) => `<Cell ss:StyleID="tileLabel${t.style}"><Data ss:Type="String">${escapeXml(t.label)}</Data></Cell>`;
+  const tileValueCell = (t) => `<Cell ss:StyleID="tileValue${t.style}"><Data ss:Type="Number">${t.isInt ? t.value : xlNum(t.value)}</Data></Cell>`;
+
+  const infoRowCount = Math.max(leftRows.length, midRows.length);
   const infoXmlRows = [];
+  // Заголовки трёх блоков в одной строке
+  infoXmlRows.push('<Row ss:Height="22">'
+    + '<Cell ss:StyleID="panelTitle" ss:MergeAcross="1"><Data ss:Type="String">ПАРАМЕТРЫ КРЕДИТА</Data></Cell>'
+    + '<Cell/>'
+    + '<Cell ss:StyleID="panelTitle" ss:MergeAcross="1"><Data ss:Type="String">РЕЗУЛЬТАТЫ РАСЧЁТА</Data></Cell>'
+    + '<Cell/>'
+    + '<Cell ss:StyleID="panelTitleLight" ss:MergeAcross="3"><Data ss:Type="String">ГРАФИК ПЛАТЕЖЕЙ</Data></Cell>'
+    + '</Row>');
   for (let i = 0; i < infoRowCount; i++) {
-    infoXmlRows.push(`<Row>${infoCell(leftRows[i])}<Cell/>${infoCell(rightRows[i])}</Row>`);
+    const tileRowCells = i === 0 ? tiles.map(tileLabelCell).join('')
+      : i === 1 ? tiles.map(tileValueCell).join('')
+      : '<Cell/><Cell/><Cell/><Cell/>';
+    infoXmlRows.push(`<Row>${infoCell(leftRows[i])}<Cell/>${infoCell(midRows[i])}<Cell/>${tileRowCells}</Row>`);
   }
   infoXmlRows.push('<Row></Row>');
   const infoXml = infoXmlRows.join('\r\n');
+  const headerRowNum = infoRowCount + 3; // 1 (заголовки блоков) + infoRowCount + 1 (пустая строка) + 1
 
-  // ---- Заголовок таблицы графика (компактная строка) ----
+  // ---- Заголовок таблицы графика ----
   const headers = ['№ платежа','Дата','Остаток на начало',
     'Погашение ОД','Начислено %','% к уплате (итого)','Начисленные проценты за ЛП','Распределение процентов за ЛП',
     'Итоговый платёж','Остаток на конец'];
@@ -1485,29 +1507,49 @@ function exportExcel() {
   // ---- Строка выдачи (t=0), перед первым месяцем графика ----
   const d = lastResult.disbursement;
   const disbursementRow = '<Row>'
-    + strCell('Выдача', false)
-    + strCell(formatDateRu(d.date), false)
-    + dashCell() + dashCell() + dashCell() + dashCell() + dashCell() + dashCell()
-    + numCell(-d.netAmount, false)
-    + numCell(p.amount, false)
+    + strCell('Выдача', 'plain')
+    + strCell(formatDateRu(d.date), 'plain')
+    + dashCell('plain') + dashCell('plain') + dashCell('plain') + dashCell('plain') + dashCell('plain') + dashCell('plain')
+    + numCell(-d.netAmount, 'num')
+    + numCell(p.amount, 'num')
     + '</Row>';
 
-  const bodyRows = lastResult.rows.map(r => {
+  const bodyRows = rows.map((r, idx) => {
     const grace = r.graceOD || r.gracePct;
+    const band = !grace && idx % 2 === 1;
+    const plainStyle = grace ? 'gracePlain' : (band ? 'plainBand' : 'plain');
+    const numStyle = grace ? 'graceNum' : (band ? 'numBand' : 'num');
     const dateStr = formatDateRu(r.date) + (r.adjusted ? ' (перенесена)' : '');
     return '<Row>' + [
-      intCell(r.i, grace),
-      strCell(dateStr, grace),
-      numCell(r.balanceStart, grace),
-      numCell(r.principal, grace),
-      numCell(r.interestAccrued, grace),
-      numCell(r.totalInterest, grace),
-      numCell(r.poolAdd, grace),
-      numCell(r.distribution, grace),
-      numCell(r.totalPayment, grace),
-      numCell(r.balanceEnd, grace),
+      intCell(r.i, plainStyle),
+      strCell(dateStr, plainStyle),
+      numCell(r.balanceStart, numStyle),
+      numCell(r.principal, numStyle),
+      numCell(r.interestAccrued, numStyle),
+      numCell(r.totalInterest, numStyle),
+      numCell(r.poolAdd, numStyle),
+      numCell(r.distribution, numStyle),
+      numCell(r.totalPayment, numStyle),
+      numCell(r.balanceEnd, numStyle),
     ].join('') + '</Row>';
-  }).join('');
+  }).join('\r\n');
+
+  // ---- Итоговая строка ----
+  const sumPrincipalAll = rows.reduce((s, r) => s + r.principal, 0);
+  const sumInterestAccrued = rows.reduce((s, r) => s + r.interestAccrued, 0);
+  const sumPoolAdd = rows.reduce((s, r) => s + r.poolAdd, 0);
+  const sumDistribution = rows.reduce((s, r) => s + r.distribution, 0);
+  const totalRow = '<Row>'
+    + '<Cell ss:StyleID="totalLabel" ss:MergeAcross="1"><Data ss:Type="String">ИТОГО</Data></Cell>'
+    + dashCell('totalStr')
+    + numCell(sumPrincipalAll, 'totalNum')
+    + numCell(sumInterestAccrued, 'totalNum')
+    + numCell(totalInterestSum, 'totalNum')
+    + numCell(sumPoolAdd, 'totalNum')
+    + numCell(sumDistribution, 'totalNum')
+    + numCell(totalPaymentSum, 'totalNum')
+    + numCell(rows[rows.length - 1].balanceEnd, 'totalNum')
+    + '</Row>';
 
   const border = '<Borders><Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#DDE3E9"/>'
     + '<Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#DDE3E9"/>'
@@ -1524,20 +1566,35 @@ function exportExcel() {
     + 'xmlns:x="urn:schemas-microsoft-com:office:excel" '
     + 'xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">\r\n'
     + '<Styles>\r\n'
-    + `<Style ss:ID="header"><Font ss:Bold="1" ss:Size="9"/><Interior ss:Color="#F0F3F6" ss:Pattern="Solid"/><Alignment ss:Horizontal="Center" ss:Vertical="Center" ss:WrapText="1"/>${border}</Style>\r\n`
-    + `<Style ss:ID="grace"><Interior ss:Color="#FFF8E0" ss:Pattern="Solid"/>${border}</Style>\r\n`
+    + `<Style ss:ID="header"><Font ss:Bold="1" ss:Size="9" ss:Color="#FFFFFF"/><Interior ss:Color="#0B2A4A" ss:Pattern="Solid"/><Alignment ss:Horizontal="Center" ss:Vertical="Center" ss:WrapText="1"/>${border}</Style>\r\n`
+    + `<Style ss:ID="plain">${border}</Style>\r\n`
+    + `<Style ss:ID="plainBand"><Interior ss:Color="#F3F5F8" ss:Pattern="Solid"/>${border}</Style>\r\n`
+    + `<Style ss:ID="gracePlain"><Interior ss:Color="#FFF8E0" ss:Pattern="Solid"/>${border}</Style>\r\n`
     + `<Style ss:ID="num"><NumberFormat ss:Format="#,##0.00"/>${border}</Style>\r\n`
+    + `<Style ss:ID="numBand"><Interior ss:Color="#F3F5F8" ss:Pattern="Solid"/><NumberFormat ss:Format="#,##0.00"/>${border}</Style>\r\n`
     + `<Style ss:ID="graceNum"><Interior ss:Color="#FFF8E0" ss:Pattern="Solid"/><NumberFormat ss:Format="#,##0.00"/>${border}</Style>\r\n`
-    + `<Style ss:ID="text">${border}</Style>\r\n`
-    + `<Style ss:ID="sectionHeader"><Font ss:Bold="1" ss:Size="13" ss:Color="#173D92"/><Interior ss:Color="#E8EEFB" ss:Pattern="Solid"/></Style>\r\n`
-    + `<Style ss:ID="label"><Font ss:Bold="1"/></Style>\r\n`
-    + `<Style ss:ID="value"><NumberFormat ss:Format="#,##0.00"/></Style>\r\n`
-    + `<Style ss:ID="pctResult"><Font ss:Bold="1" ss:Size="13" ss:Color="#167C46"/><NumberFormat ss:Format="0.00%"/></Style>\r\n`
+    + `<Style ss:ID="panelTitle"><Font ss:Bold="1" ss:Size="12" ss:Color="#FFFFFF"/><Interior ss:Color="#0B2A4A" ss:Pattern="Solid"/><Alignment ss:Horizontal="Center" ss:Vertical="Center"/></Style>\r\n`
+    + `<Style ss:ID="panelTitleLight"><Font ss:Bold="1" ss:Size="12" ss:Color="#0B2A4A"/><Interior ss:Color="#D9E4F2" ss:Pattern="Solid"/><Alignment ss:Horizontal="Center" ss:Vertical="Center"/></Style>\r\n`
+    + `<Style ss:ID="label"><Font ss:Bold="1"/>${border}</Style>\r\n`
+    + `<Style ss:ID="value"><NumberFormat ss:Format="#,##0.00"/>${border}</Style>\r\n`
+    + `<Style ss:ID="pctResult"><Font ss:Bold="1" ss:Size="16" ss:Color="#0B2A4A"/><NumberFormat ss:Format="0.00%"/>${border}</Style>\r\n`
+    + `<Style ss:ID="tileLabelgreen"><Font ss:Bold="1" ss:Size="9" ss:Color="#1F5C3A"/><Interior ss:Color="#C6E9D3" ss:Pattern="Solid"/><Alignment ss:Horizontal="Center" ss:Vertical="Center" ss:WrapText="1"/>${border}</Style>\r\n`
+    + `<Style ss:ID="tileValuegreen"><Font ss:Bold="1" ss:Size="13" ss:Color="#173D26"/><Interior ss:Color="#F3FAF5" ss:Pattern="Solid"/><Alignment ss:Horizontal="Center" ss:Vertical="Center"/><NumberFormat ss:Format="#,##0.00"/>${border}</Style>\r\n`
+    + `<Style ss:ID="tileLabelblue"><Font ss:Bold="1" ss:Size="9" ss:Color="#1E4A80"/><Interior ss:Color="#D6E4F5" ss:Pattern="Solid"/><Alignment ss:Horizontal="Center" ss:Vertical="Center" ss:WrapText="1"/>${border}</Style>\r\n`
+    + `<Style ss:ID="tileValueblue"><Font ss:Bold="1" ss:Size="13" ss:Color="#123057"/><Interior ss:Color="#F2F6FC" ss:Pattern="Solid"/><Alignment ss:Horizontal="Center" ss:Vertical="Center"/><NumberFormat ss:Format="#,##0.00"/>${border}</Style>\r\n`
+    + `<Style ss:ID="tileLabelorange"><Font ss:Bold="1" ss:Size="9" ss:Color="#8A4B1E"/><Interior ss:Color="#FBE0CE" ss:Pattern="Solid"/><Alignment ss:Horizontal="Center" ss:Vertical="Center" ss:WrapText="1"/>${border}</Style>\r\n`
+    + `<Style ss:ID="tileValueorange"><Font ss:Bold="1" ss:Size="13" ss:Color="#6B3410"/><Interior ss:Color="#FDF3EC" ss:Pattern="Solid"/><Alignment ss:Horizontal="Center" ss:Vertical="Center"/><NumberFormat ss:Format="#,##0.00"/>${border}</Style>\r\n`
+    + `<Style ss:ID="tileLabelgray"><Font ss:Bold="1" ss:Size="9" ss:Color="#4A5560"/><Interior ss:Color="#E7E9EC" ss:Pattern="Solid"/><Alignment ss:Horizontal="Center" ss:Vertical="Center" ss:WrapText="1"/>${border}</Style>\r\n`
+    + `<Style ss:ID="tileValuegray"><Font ss:Bold="1" ss:Size="13" ss:Color="#33383D"/><Interior ss:Color="#F5F6F7" ss:Pattern="Solid"/><Alignment ss:Horizontal="Center" ss:Vertical="Center"/><NumberFormat ss:Format="0"/>${border}</Style>\r\n`
+    + `<Style ss:ID="totalLabel"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#0B2A4A" ss:Pattern="Solid"/>${border}</Style>\r\n`
+    + `<Style ss:ID="totalStr"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#0B2A4A" ss:Pattern="Solid"/>${border}</Style>\r\n`
+    + `<Style ss:ID="totalNum"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#0B2A4A" ss:Pattern="Solid"/><NumberFormat ss:Format="#,##0.00"/>${border}</Style>\r\n`
     + '</Styles>\r\n'
     + '<Worksheet ss:Name="График"><Table>\r\n'
     + columns + '\r\n'
-    + infoXml + '\r\n' + headerRow + '\r\n' + disbursementRow + '\r\n' + bodyRows
+    + infoXml + '\r\n' + headerRow + '\r\n' + disbursementRow + '\r\n' + bodyRows + '\r\n' + totalRow
     + '\r\n</Table>\r\n'
+    + `<AutoFilter x:Range="R${headerRowNum}C1:R${headerRowNum}C10" xmlns="urn:schemas-microsoft-com:office:excel"></AutoFilter>\r\n`
     + '</Worksheet>\r\n'
     + '</Workbook>';
 
