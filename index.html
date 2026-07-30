@@ -434,6 +434,9 @@
               <tbody id="grace-tbody"></tbody>
             </table>
           </div>
+          <div class="btn-row">
+            <button class="btn-secondary" id="btn-reset-grace" type="button">Сбросить</button>
+          </div>
         </div>
       </details>
     </div>
@@ -454,6 +457,9 @@
             </table>
           </div>
           <div class="field-note">Отметка применяется сразу ко всем годам срока кредита: например, «Январь» для ОД проставит льготу по ОД на каждый январь в графике. Точечные правки в таблице выше после этого можно вносить вручную — обратной синхронизации нет.</div>
+          <div class="btn-row">
+            <button class="btn-secondary" id="btn-reset-seasonal-grace" type="button">Сбросить</button>
+          </div>
         </div>
       </details>
     </div>
@@ -1159,6 +1165,15 @@ function syncTermFromEndDate() {
   rebuildGraceTable(term);
 }
 
+// Сбрасывает все льготы и ручные веса (ОД и %) на всех месяцах графика — общая
+// точка сброса и для таблицы "Льготы по месяцам", и для "Льготы по календарным
+// месяцам" (у второго блока нет собственного состояния, кроме тех же полей).
+function resetAllGrace() {
+  monthsState.forEach(m => { m.graceOD = false; m.weightOD = 0; m.gracePct = false; m.weight = 0; });
+  renderGraceTable();
+  renderSeasonalGraceTable();
+}
+
 function renderGraceTable() {
   const tbody = document.getElementById('grace-tbody');
   tbody.innerHTML = '';
@@ -1668,6 +1683,8 @@ function init() {
 
   document.getElementById('btn-calc').addEventListener('click', doCalculate);
   document.getElementById('btn-export').addEventListener('click', exportExcel);
+  document.getElementById('btn-reset-grace').addEventListener('click', resetAllGrace);
+  document.getElementById('btn-reset-seasonal-grace').addEventListener('click', resetAllGrace);
 }
 
 init();
