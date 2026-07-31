@@ -116,6 +116,7 @@
     background: #fff;
     color: var(--text);
   }
+  input[readonly] { background: #f3f5f8; color: var(--text-muted); cursor: default; }
   input:focus, select:focus, button:focus {
     outline: 2px solid var(--accent);
     outline-offset: 1px;
@@ -335,6 +336,9 @@
           <input type="date" id="f-end-date">
         </div>
       </div>
+
+      <label for="f-first-payment-date">Дата первого платежа</label>
+      <input type="text" id="f-first-payment-date" readonly placeholder="—">
 
       <div class="inline-field">
         <label for="f-payment-day">День платежа</label>
@@ -1346,6 +1350,8 @@ function renderResults(result) {
   setTile('bucket', result.checks.bucketEnd, true);
   setTile('balance', result.checks.balanceEnd, true);
 
+  document.getElementById('f-first-payment-date').value = result.rows.length ? formatDateRu(result.rows[0].date) : '—';
+
   const tbody = document.getElementById('schedule-tbody');
   tbody.innerHTML = '';
   for (const r of result.rows) {
@@ -1379,6 +1385,7 @@ function doCalculate() {
     document.getElementById('btn-export').disabled = true;
     document.getElementById('gesv-value').textContent = '—';
     document.querySelectorAll('.tile').forEach(t => { t.classList.remove('ok', 'bad'); t.querySelector('.tile-value').textContent = '—'; });
+    document.getElementById('f-first-payment-date').value = '';
     document.getElementById('schedule-tbody').innerHTML = '<tr><td colspan="10" class="empty-hint">Нажмите «Рассчитать», чтобы увидеть график</td></tr>';
     return;
   }
