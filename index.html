@@ -51,7 +51,7 @@
   .subtitle { color: rgba(255,255,255,0.72); font-size: 12.5px; margin: 2px 0 0; }
 
   .app-header {
-    padding: 16px 20px;
+    padding: 16px 12px;
     background: linear-gradient(135deg, var(--header-green) 0%, var(--header-green-dark) 100%);
     border-bottom: 3px solid var(--gold);
     display: flex;
@@ -73,7 +73,7 @@
     display: grid;
     grid-template-columns: 380px 1fr;
     gap: 16px;
-    padding: 0 20px 24px;
+    padding: 0 12px 24px;
     align-items: start;
   }
   /* Без этого грид-колонки не сжимаются уже широкого контента (таблиц, длинных
@@ -84,6 +84,8 @@
   }
   @media (max-width: 520px) {
     .field-row { grid-template-columns: 1fr; }
+    .layout { padding: 0 8px 20px; }
+    .app-header { padding: 12px 8px; }
   }
 
   .panel {
