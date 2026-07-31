@@ -338,7 +338,7 @@
       </div>
 
       <label for="f-first-payment-date">Дата первого платежа</label>
-      <input type="text" id="f-first-payment-date" readonly placeholder="—">
+      <input type="date" id="f-first-payment-date">
 
       <div class="inline-field">
         <label for="f-payment-day">День платежа</label>
@@ -828,6 +828,7 @@ function validateInputs(p) {
   if (!Number.isInteger(p.termMonths) || p.termMonths < 1 || p.termMonths > 360) return 'Срок должен быть от 1 до 360 месяцев.';
   if (!(p.baseDays > 0)) return 'База расчёта дней в году должна быть больше нуля.';
   if (p.paymentDay !== null && (!Number.isInteger(p.paymentDay) || p.paymentDay < 1 || p.paymentDay > 31)) return 'День платежа должен быть от 1 до 31.';
+  if (p.firstPaymentDate && p.firstPaymentDate <= p.issueDate) return 'Дата первого платежа должна быть позже даты выдачи.';
   if (!(p.feePct >= 0) || !(p.feeFix >= 0)) return 'Комиссии не могут быть отрицательными.';
   if (!(p.rate2Pct >= 0)) return 'Вторая ставка не может быть отрицательной.';
   if (!(p.rate3Pct >= 0)) return 'Третья ставка не может быть отрицательной.';
@@ -890,24 +891,17 @@ function generateSchedule(p) {
   const maxYear = p.issueDate.getFullYear() + Math.ceil(N / 12) + 2;
   const calendar = buildCalendar(minYear, maxYear);
 
-  // Даты месяцев 0..N-1 (0 = дата выдачи, не переносится согласно 6.5).
+  // Даты месяцев 0..N-1 (0 = дата выдачи, не переносится согласно 6.5). Первый
+  // платёж (i=1) берётся из поля «Дата первого платежа», если оно заполнено —
+  // это поле по умолчанию синхронизируется с датой выдачи/днём платежа, но
+  // пользователь может задать его вручную. Остальные месяцы — по «Дню платежа».
   const monthDates = [p.issueDate];
   const wasAdjusted = [false];
   for (let i = 1; i < N; i++) {
-    const raw = addMonthsClamped(p.issueDate, i, p.paymentDay);
+    const raw = (i === 1 && p.firstPaymentDate) ? p.firstPaymentDate : addMonthsClamped(p.issueDate, i, p.paymentDay);
     const adj = nextWorkday(raw, calendar.isNonWorking);
     monthDates.push(adj);
     wasAdjusted.push(adj.getTime() !== raw.getTime());
-  }
-
-  // Правило начала периода: если до первого планового платежа (i=1) меньше
-  // 15 дней от даты выдачи, он сливается со вторым — первым фактическим
-  // платежом становится плановая дата через месяц (i=2), а проценты за этот
-  // (более длинный) первый период начисляются от самой даты выдачи.
-  let firstRealIndex = 1;
-  if (N >= 2 && daysBetween(p.issueDate, monthDates[1]) < 15) {
-    monthDates[1] = p.issueDate;
-    firstRealIndex = 2;
   }
 
   // Дата окончания кредита — фактическая дата погашения по сроку, не зависит
@@ -1019,7 +1013,7 @@ function generateSchedule(p) {
   const state = { pool: 0, poolPeak: 0 };
   let annuityX = 0, needsResolve = true;
 
-  for (let i = firstRealIndex; i <= N; i++) {
+  for (let i = 1; i <= N; i++) {
     const balanceStart = balance;
 
     // Резолвим аннуитетный платёж до начисления процентов этого периода — по
@@ -1143,6 +1137,20 @@ function syncTermFromEndDate() {
   const term = Math.max(1, Math.min(360, monthsBetweenDates(issueDate, endDate)));
   document.getElementById('f-term').value = term;
   rebuildGraceTable(term);
+}
+
+// Предлагает дату первого платежа по дате выдачи и «Дню платежа» (через месяц
+// после выдачи; если до этой даты меньше 15 дней — через два месяца, чтобы не
+// получался слишком короткий первый период). Поле можно переопределить вручную
+// — этот расчёт лишь подставляет разумное значение по умолчанию.
+function syncFirstPaymentDateFromIssue() {
+  const issueDate = parseDateField('f-issue-date');
+  if (!issueDate) return;
+  const paymentDayVal = document.getElementById('f-payment-day').value;
+  const paymentDay = paymentDayVal ? parseInt(paymentDayVal, 10) : null;
+  const candidate = addMonthsClamped(issueDate, 1, paymentDay);
+  const useDate = daysBetween(issueDate, candidate) < 15 ? addMonthsClamped(issueDate, 2, paymentDay) : candidate;
+  document.getElementById('f-first-payment-date').value = toDateInputValue(useDate);
 }
 
 // Сбрасывает все льготы и ручные веса (ОД и %) на всех месяцах графика — общая
@@ -1306,6 +1314,7 @@ function readParams() {
     ratePct: parseFloat(document.getElementById('f-rate').value),
     issueDate: dateStr ? new Date(dateStr + 'T00:00:00') : null,
     endDate: parseDateField('f-end-date'),
+    firstPaymentDate: parseDateField('f-first-payment-date'),
     termMonths: parseInt(document.getElementById('f-term').value, 10),
     paymentDay: document.getElementById('f-payment-day').value ? parseInt(document.getElementById('f-payment-day').value, 10) : null,
     baseDays: parseFloat(document.getElementById('f-base-days').value),
@@ -1350,8 +1359,6 @@ function renderResults(result) {
   setTile('bucket', result.checks.bucketEnd, true);
   setTile('balance', result.checks.balanceEnd, true);
 
-  document.getElementById('f-first-payment-date').value = result.rows.length ? formatDateRu(result.rows[0].date) : '—';
-
   const tbody = document.getElementById('schedule-tbody');
   tbody.innerHTML = '';
   for (const r of result.rows) {
@@ -1385,7 +1392,6 @@ function doCalculate() {
     document.getElementById('btn-export').disabled = true;
     document.getElementById('gesv-value').textContent = '—';
     document.querySelectorAll('.tile').forEach(t => { t.classList.remove('ok', 'bad'); t.querySelector('.tile-value').textContent = '—'; });
-    document.getElementById('f-first-payment-date').value = '';
     document.getElementById('schedule-tbody').innerHTML = '<tr><td colspan="10" class="empty-hint">Нажмите «Рассчитать», чтобы увидеть график</td></tr>';
     return;
   }
@@ -1625,6 +1631,7 @@ function init() {
   attachIntegerZeroTrimBehavior(document.getElementById('f-grace-pct-start'));
   attachMonthScroll(document.getElementById('f-issue-date'));
   attachMonthScroll(document.getElementById('f-end-date'));
+  attachMonthScroll(document.getElementById('f-first-payment-date'));
   attachMonthScroll(document.getElementById('f-rate2-date'));
   attachMonthScroll(document.getElementById('f-rate3-date'));
   attachRateToggle('f-rate2-enabled', 'f-rate2-content');
@@ -1633,6 +1640,7 @@ function init() {
   rebuildGraceTable(12);
   renderSeasonalGraceTable();
   syncEndDateFromTerm();
+  syncFirstPaymentDateFromIssue();
 
   document.getElementById('f-term').addEventListener('change', (e) => {
     let term = parseInt(e.target.value, 10);
@@ -1644,7 +1652,11 @@ function init() {
   });
 
   document.getElementById('f-end-date').addEventListener('change', syncTermFromEndDate);
-  document.getElementById('f-issue-date').addEventListener('change', syncEndDateFromTerm);
+  document.getElementById('f-issue-date').addEventListener('change', () => {
+    syncEndDateFromTerm();
+    syncFirstPaymentDateFromIssue();
+  });
+  document.getElementById('f-payment-day').addEventListener('change', syncFirstPaymentDateFromIssue);
 
   document.getElementById('f-grace-od-start').addEventListener('change', (e) => {
     const months = parseInt(e.target.value, 10);
