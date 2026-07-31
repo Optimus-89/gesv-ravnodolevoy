@@ -430,7 +430,7 @@
           <div class="grace-table-wrap">
             <table>
               <colgroup>
-                <col style="width:42px"><col style="width:64px"><col><col style="width:64px"><col>
+                <col style="width:64px"><col style="width:64px"><col><col style="width:64px"><col>
               </colgroup>
               <thead>
                 <tr><th>Мес.</th><th>Льгота ОД</th><th>Вес ОД (ручн.)</th><th>Льгота %</th><th>Вес (ручн.), %</th></tr>
@@ -1162,6 +1162,22 @@ function resetAllGrace() {
   renderSeasonalGraceTable();
 }
 
+const SHORT_MONTH_NAMES = ['янв', 'февр', 'март', 'апр', 'май', 'июн', 'июл', 'авг', 'сент', 'окт', 'нояб', 'дек'];
+
+// Подпись месяца строки таблицы льгот — фактические месяц и год этого платежа
+// по текущим дате выдачи/дате первого платежа/дню платежа (та же логика дат,
+// что и в самом графике). Если дата выдачи не задана — просто номер месяца.
+function graceMonthLabel(idx) {
+  const issueDate = parseDateField('f-issue-date');
+  if (!issueDate) return String(idx + 1);
+  const paymentDayVal = document.getElementById('f-payment-day').value;
+  const paymentDay = paymentDayVal ? parseInt(paymentDayVal, 10) : null;
+  const d = idx === 0
+    ? (parseDateField('f-first-payment-date') || addMonthsClamped(issueDate, 1, paymentDay))
+    : addMonthsClamped(issueDate, idx + 1, paymentDay);
+  return `${SHORT_MONTH_NAMES[d.getMonth()]} ${String(d.getFullYear()).slice(-2)}`;
+}
+
 function renderGraceTable() {
   const tbody = document.getElementById('grace-tbody');
   tbody.innerHTML = '';
@@ -1169,7 +1185,7 @@ function renderGraceTable() {
     const tr = document.createElement('tr');
     if (m.graceOD || m.gracePct) tr.classList.add('grace-row-input');
     tr.innerHTML = `
-      <td class="month-col">${idx + 1}</td>
+      <td class="month-col">${graceMonthLabel(idx)}</td>
       <td class="grace-cell"><input type="checkbox" data-idx="${idx}" data-field="graceOD" ${m.graceOD ? 'checked' : ''}></td>
       <td><input type="text" inputmode="numeric" class="weight-input" data-idx="${idx}" data-field="weightOD" value="${(Number(m.weightOD) || 0).toLocaleString('ru-RU')}"></td>
       <td class="grace-cell"><input type="checkbox" data-idx="${idx}" data-field="gracePct" ${m.gracePct ? 'checked' : ''}></td>
@@ -1655,8 +1671,13 @@ function init() {
   document.getElementById('f-issue-date').addEventListener('change', () => {
     syncEndDateFromTerm();
     syncFirstPaymentDateFromIssue();
+    renderGraceTable();
   });
-  document.getElementById('f-payment-day').addEventListener('change', syncFirstPaymentDateFromIssue);
+  document.getElementById('f-payment-day').addEventListener('change', () => {
+    syncFirstPaymentDateFromIssue();
+    renderGraceTable();
+  });
+  document.getElementById('f-first-payment-date').addEventListener('change', renderGraceTable);
 
   document.getElementById('f-grace-od-start').addEventListener('change', (e) => {
     const months = parseInt(e.target.value, 10);
