@@ -374,7 +374,7 @@
         </div>
         <div>
           <label for="f-fee-fix">Комиссия в денежном выражении</label>
-          <input type="text" inputmode="numeric" id="f-fee-fix" value="0">
+          <input type="text" inputmode="decimal" id="f-fee-fix" value="0">
         </div>
       </div>
 
@@ -654,16 +654,26 @@ function attachThousandsFormatting(input) {
   });
 }
 
-// "Комиссия в денежном выражении": целое число с группировкой разрядов
-// пробелом. Ведущий ноль убирается по мере ввода цифр, при полном стирании
-// поле само возвращается к "0".
+// "Комиссия в денежном выражении": целая часть — с группировкой разрядов
+// пробелом, дробная часть (сотые) — через запятую, до 2 знаков. Ведущий ноль
+// целой части убирается по мере ввода цифр, при полном стирании поле само
+// возвращается к "0".
 function attachFeeFixBehavior(input) {
   input.addEventListener('input', () => {
     const cursorFromEnd = input.value.length - input.selectionStart;
-    let digits = input.value.replace(/[^\d]/g, '');
-    digits = digits.replace(/^0+(?=\d)/, '');
-    if (digits === '') digits = '0';
-    const formatted = parseInt(digits, 10).toLocaleString('ru-RU');
+    const cleaned = input.value.replace(/[^\d.,]/g, '');
+    const sepIndex = cleaned.search(/[.,]/);
+    let formatted;
+    if (sepIndex === -1) {
+      let digits = cleaned.replace(/^0+(?=\d)/, '');
+      if (digits === '') digits = '0';
+      formatted = parseInt(digits, 10).toLocaleString('ru-RU');
+    } else {
+      const intPart = cleaned.slice(0, sepIndex).replace(/^0+(?=\d)/, '');
+      const decPart = cleaned.slice(sepIndex + 1).replace(/[.,]/g, '').slice(0, 2);
+      const intFormatted = intPart ? parseInt(intPart, 10).toLocaleString('ru-RU') : '0';
+      formatted = `${intFormatted},${decPart}`;
+    }
     input.value = formatted;
     const pos = Math.max(0, formatted.length - cursorFromEnd);
     input.setSelectionRange(pos, pos);
