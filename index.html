@@ -423,7 +423,7 @@
             <option value="manual">Ручное распределение</option>
           </select>
           <div class="field-note" id="pool-note-untilNextGrace" style="display:none;">«До следующего льготного периода»: пул равномерно распределяется на платежи до начала следующей льготы по %, а не до конца срока.</div>
-          <div class="field-note" id="pool-note-manual" style="display:none;">«Ручное распределение»: вес, % — доля от <b>суммы, накопленной за этот льготный период</b> (100% = вся отложенная за льготу сумма), а не от текущего остатка. Например, 50% — это половина от изначально накопленного, 20% — пятая часть.</div>
+          <div class="field-note" id="pool-note-manual" style="display:none;">«Ручное распределение»: вес — сумма в денежном выражении, которая списывается из пула на эту дату (не доля в процентах). Если указанная сумма больше накопленного пула — списывается весь остаток пула.</div>
         </div>
       </details>
     </div>
@@ -548,7 +548,7 @@
                 <col style="width:64px"><col style="width:64px"><col><col style="width:64px"><col>
               </colgroup>
               <thead>
-                <tr><th>Мес.</th><th>Льгота ОД</th><th>Вес ОД (ручн.)</th><th>Льгота %</th><th>Вес (ручн.), %</th></tr>
+                <tr><th>Мес.</th><th>Льгота ОД</th><th>Вес ОД (ручн.)</th><th>Льгота %</th><th>Вес % (ручн.)</th></tr>
               </thead>
               <tbody id="grace-tbody"></tbody>
             </table>
@@ -848,7 +848,7 @@ function validateInputs(p) {
   if (!(p.rate2Pct >= 0)) return 'Вторая ставка не может быть отрицательной.';
   if (!(p.rate3Pct >= 0)) return 'Третья ставка не может быть отрицательной.';
   for (const m of p.months) {
-    if (!(m.weight >= 0) || !(m.weight <= 100)) return 'Вес ручного распределения должен быть от 0 до 100%.';
+    if (!(m.weight >= 0)) return 'Вес ручного распределения не может быть отрицательным.';
     if (!(m.weightOD >= 0)) return 'Вес ОД ручного распределения не может быть отрицательным.';
   }
   return null;
@@ -941,7 +941,7 @@ function generateSchedule(p) {
     const m = p.months[i - 1];
     graceOD.push(!!m.graceOD);
     gracePct.push(!!m.gracePct);
-    weight.push((Number(m.weight) || 0) / 100);
+    weight.push(Number(m.weight) || 0);
     weightOD.push(Number(m.weightOD) || 0);
   }
 
@@ -974,7 +974,6 @@ function generateSchedule(p) {
 
     const poolStart = state.pool;
     const poolAdd = deferred ? interestAccrued : 0;
-    if (deferred) state.poolPeak = poolStart + poolAdd;
 
     let interestPaid = 0, distribution = 0;
     if (!deferred) {
@@ -982,10 +981,9 @@ function generateSchedule(p) {
       if (p.poolMethod === 'nearest') distribution = poolStart;
       else if (p.poolMethod === 'all') distribution = remainingPct[i] > 0 ? poolStart / remainingPct[i] : 0;
       else if (p.poolMethod === 'untilNextGrace') distribution = remainingPctLocal[i] > 0 ? poolStart / remainingPctLocal[i] : 0;
-      else if (p.poolMethod === 'manual') distribution = remainingPct[i] === 1 ? poolStart : Math.min(poolStart, state.poolPeak * weight[i]);
+      else if (p.poolMethod === 'manual') distribution = remainingPct[i] === 1 ? poolStart : Math.min(poolStart, weight[i]);
     }
     const poolEnd = poolStart + poolAdd - distribution;
-    if (poolEnd < 1e-6) state.poolPeak = 0;
     state.pool = poolEnd;
 
     return { interestAccrued, interestPaid, poolAdd, distribution, poolEnd, totalInterest: interestPaid + distribution };
@@ -998,10 +996,10 @@ function generateSchedule(p) {
   // несовпадающими датами ОД/% и по льготе %) — поэтому платёж остаётся
   // одинаковым по всему графику: и при разной периодичности ОД/%, и при
   // известной заранее льготе, и при смене ставки (2-я/3-я).
-  function solveAnnuityPayment(startBalance, startIndex, poolAtStart, poolPeakAtStart) {
+  function solveAnnuityPayment(startBalance, startIndex, poolAtStart) {
     const simulateFinalBalance = (X) => {
       let bal = startBalance;
-      const state = { pool: poolAtStart, poolPeak: poolPeakAtStart };
+      const state = { pool: poolAtStart };
       for (let j = startIndex; j <= N; j++) {
         const { totalInterest } = stepInterest(state, j, bal);
         if (dueOD[j] && !graceOD[j]) bal -= (X - totalInterest);
@@ -1025,7 +1023,7 @@ function generateSchedule(p) {
 
   const rows = [];
   let balance = p.amount, sumPrincipal = 0, lastPctDueRowIdx = -1;
-  const state = { pool: 0, poolPeak: 0 };
+  const state = { pool: 0 };
   let annuityX = 0, needsResolve = true;
 
   for (let i = 1; i <= N; i++) {
@@ -1034,7 +1032,7 @@ function generateSchedule(p) {
     // Резолвим аннуитетный платёж до начисления процентов этого периода — по
     // состоянию пула на начало периода, как при реальном расчёте.
     if (p.method === 'annuity' && needsResolve && dueOD[i] && !graceOD[i] && remainingOD[i] > 1) {
-      annuityX = solveAnnuityPayment(balanceStart, i, state.pool, state.poolPeak);
+      annuityX = solveAnnuityPayment(balanceStart, i, state.pool);
       needsResolve = false;
     }
 
@@ -1204,7 +1202,7 @@ function renderGraceTable() {
       <td class="grace-cell"><input type="checkbox" data-idx="${idx}" data-field="graceOD" ${m.graceOD ? 'checked' : ''}></td>
       <td><input type="text" inputmode="numeric" class="weight-input" data-idx="${idx}" data-field="weightOD" value="${(Number(m.weightOD) || 0).toLocaleString('ru-RU')}"></td>
       <td class="grace-cell"><input type="checkbox" data-idx="${idx}" data-field="gracePct" ${m.gracePct ? 'checked' : ''}></td>
-      <td><input type="text" inputmode="numeric" class="weight-input" data-idx="${idx}" data-field="weight" value="${String(m.weight).replace('.', ',')}"></td>
+      <td><input type="text" inputmode="numeric" class="weight-input" data-idx="${idx}" data-field="weight" value="${(Number(m.weight) || 0).toLocaleString('ru-RU')}"></td>
     `;
     tbody.appendChild(tr);
   });
@@ -1224,7 +1222,7 @@ function renderGraceTable() {
     });
   });
   tbody.querySelectorAll('input.weight-input[data-field="weightOD"]').forEach(attachWeightODInputBehavior);
-  tbody.querySelectorAll('input.weight-input[data-field="weight"]').forEach(attachWeightPctInputBehavior);
+  tbody.querySelectorAll('input.weight-input[data-field="weight"]').forEach(attachWeightODInputBehavior);
 }
 
 const CALENDAR_MONTH_NAMES = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
@@ -1292,9 +1290,10 @@ function focusNextRowOnEnter(e) {
   if (next) { next.focus(); next.select(); }
 }
 
-// "Вес ОД (ручн.)" — сумма, целое число с группировкой разрядов пробелом
-// (например "300 000"), как в поле "Сумма кредита". Ведущий ноль убирается по
-// мере ввода цифр, при полном стирании поле возвращается к "0".
+// "Вес ОД (ручн.)" и "Вес % (ручн.)" — сумма в денежном выражении, целое число
+// с группировкой разрядов пробелом (например "300 000"), как в поле "Сумма
+// кредита". Ведущий ноль убирается по мере ввода цифр, при полном стирании
+// поле возвращается к "0".
 function attachWeightODInputBehavior(inp) {
   inp.addEventListener('input', () => {
     const cursorFromEnd = inp.value.length - inp.selectionStart;
@@ -1307,28 +1306,6 @@ function attachWeightODInputBehavior(inp) {
     const pos = Math.max(0, formatted.length - cursorFromEnd);
     inp.setSelectionRange(pos, pos);
     monthsState[+inp.dataset.idx][inp.dataset.field] = num;
-  });
-  inp.addEventListener('keydown', focusNextRowOnEnter);
-}
-
-// "Вес (ручн.), %" — доля, поддерживает дробную часть (сотые, тысячные и
-// далее) через запятую или точку. Ведущий ноль перед следующей цифрой
-// убирается, но "0," на этом не ломается; при полном стирании — назад к "0".
-function attachWeightPctInputBehavior(inp) {
-  inp.addEventListener('input', () => {
-    const cursorFromEnd = inp.value.length - inp.selectionStart;
-    let v = inp.value.replace(/[^\d.,]/g, '');
-    const sep = v.match(/[.,]/);
-    if (sep) {
-      const i = v.indexOf(sep[0]);
-      v = v.slice(0, i + 1) + v.slice(i + 1).replace(/[.,]/g, '');
-    }
-    if (/^0\d/.test(v)) v = v.replace(/^0+(?=\d)/, '');
-    if (v === '') v = '0';
-    inp.value = v;
-    const pos = Math.max(0, v.length - cursorFromEnd);
-    inp.setSelectionRange(pos, pos);
-    monthsState[+inp.dataset.idx][inp.dataset.field] = parseFloat(v.replace(',', '.')) || 0;
   });
   inp.addEventListener('keydown', focusNextRowOnEnter);
 }
