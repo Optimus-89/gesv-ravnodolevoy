@@ -545,15 +545,14 @@
           <div class="grace-table-wrap">
             <table>
               <colgroup>
-                <col style="width:64px"><col style="width:64px"><col><col style="width:64px"><col><col style="width:76px">
+                <col style="width:64px"><col style="width:64px"><col><col style="width:64px"><col>
               </colgroup>
               <thead>
-                <tr><th>Мес.</th><th>Льгота ОД</th><th>Вес ОД (ручн.)</th><th>Льгота %</th><th>Вес % (ручн.)</th><th>Распред. на, мес.</th></tr>
+                <tr><th>Мес.</th><th>Льгота ОД</th><th>Вес ОД (ручн.)</th><th>Льгота %</th><th>Вес % (ручн.)</th></tr>
               </thead>
               <tbody id="grace-tbody"></tbody>
             </table>
           </div>
-          <div class="field-note">«Распред. на, мес.»: после «Рассчитать» введите число месяцев — накопленный к этой строке пул % разделится поровну и подставится в «Вес % (ручн.)» на столько следующих due-дат по %. Не забудьте выбрать способ «Ручное распределение» выше (переключается автоматически).</div>
           <div class="btn-row">
             <button class="btn-secondary" id="btn-reset-grace" type="button">Сбросить</button>
           </div>
@@ -1204,7 +1203,6 @@ function renderGraceTable() {
       <td><input type="text" inputmode="numeric" class="weight-input" data-idx="${idx}" data-field="weightOD" value="${(Number(m.weightOD) || 0).toLocaleString('ru-RU')}"></td>
       <td class="grace-cell"><input type="checkbox" data-idx="${idx}" data-field="gracePct" ${m.gracePct ? 'checked' : ''}></td>
       <td><input type="text" inputmode="numeric" class="weight-input" data-idx="${idx}" data-field="weight" value="${(Number(m.weight) || 0).toLocaleString('ru-RU')}"></td>
-      <td><input type="number" min="1" step="1" class="spread-input" data-idx="${idx}" placeholder="—"></td>
     `;
     tbody.appendChild(tr);
   });
@@ -1225,40 +1223,6 @@ function renderGraceTable() {
   });
   tbody.querySelectorAll('input.weight-input[data-field="weightOD"]').forEach(attachWeightODInputBehavior);
   tbody.querySelectorAll('input.weight-input[data-field="weight"]').forEach(attachWeightODInputBehavior);
-  tbody.querySelectorAll('input.spread-input').forEach(inp => {
-    inp.addEventListener('change', () => {
-      const months = parseInt(inp.value, 10);
-      if (Number.isFinite(months) && months > 0) applyPoolSpread(+inp.dataset.idx, months);
-    });
-  });
-}
-
-// «Распред. на, мес.»: разово подставляет в «Вес % (ручн.)» N следующих
-// due-дат по % (не считая льготных) равные доли пула, накопленного к строке,
-// на которой введено число месяцев — по последнему расчёту (lastResult).
-// Не пересчитывается сам по себе при последующих изменениях графика.
-function applyPoolSpread(idx, months) {
-  if (!lastResult || !lastResult.rows[idx]) {
-    showError('Сначала нажмите «Рассчитать» — распределение по месяцам считается от текущего графика.');
-    return;
-  }
-  const base = lastResult.rows[idx].poolEnd;
-  if (!(base > 0)) return;
-  const share = base / months;
-  let filled = 0;
-  for (let j = idx + 1; j < lastResult.rows.length && j < monthsState.length && filled < months; j++) {
-    const r = lastResult.rows[j];
-    if (r.duePct && !r.gracePct) {
-      monthsState[j].weight = share;
-      filled++;
-    }
-  }
-  renderGraceTable();
-  const poolSelect = document.getElementById('f-pool-method');
-  if (poolSelect.value !== 'manual') {
-    poolSelect.value = 'manual';
-    poolSelect.dispatchEvent(new Event('change'));
-  }
 }
 
 const CALENDAR_MONTH_NAMES = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
