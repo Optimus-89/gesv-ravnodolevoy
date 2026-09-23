@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Калькулятор ГЭСВ</title>
+<title data-i18n="pageTitle">Калькулятор ГЭСВ</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -59,6 +59,26 @@
     gap: 12px;
   }
   .app-header h1 { color: #fff; }
+  .app-header-title { flex: 1; min-width: 0; }
+  .lang-switch {
+    flex: none;
+    display: flex;
+    border: 1px solid rgba(255,255,255,0.55);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .lang-switch button {
+    padding: 6px 10px;
+    font-size: 12px;
+    font-weight: 700;
+    border-radius: 0;
+    background: transparent;
+    color: #fff;
+    border: none;
+  }
+  .lang-switch button + button { border-left: 1px solid rgba(255,255,255,0.55); }
+  .lang-switch button.active { background: var(--gold); color: #1a2a1a; }
+  .lang-switch button:hover:not(.active) { background: rgba(255,255,255,0.15); }
   .brand-mark {
     flex: none;
     width: 38px; height: 38px;
@@ -301,9 +321,13 @@
 
 <div class="app-header">
   <div class="brand-mark" aria-hidden="true">%</div>
-  <div>
-    <h1>Калькулятор ГЭСВ</h1>
-    <p class="subtitle">Расчёт годовой эффективной ставки вознаграждения методом XIRR.</p>
+  <div class="app-header-title">
+    <h1 data-i18n="pageTitle">Калькулятор ГЭСВ</h1>
+    <p class="subtitle" data-i18n="subtitle">Расчёт годовой эффективной ставки вознаграждения методом XIRR.</p>
+  </div>
+  <div class="lang-switch" id="lang-switch">
+    <button type="button" id="btn-lang-ru" class="active">RU</button>
+    <button type="button" id="btn-lang-kk">ҚАЗ</button>
   </div>
 </div>
 
@@ -312,125 +336,125 @@
   <!-- LEFT COLUMN -->
   <div>
     <div class="panel">
-      <h2>Параметры кредита</h2>
+      <h2 data-i18n="paramsHeading">Параметры кредита</h2>
 
-      <label for="f-amount">Сумма кредита</label>
+      <label for="f-amount" data-i18n="amountLabel">Сумма кредита</label>
       <input type="text" inputmode="numeric" id="f-amount" value="1 000 000">
 
       <div class="field-row">
         <div>
-          <label for="f-rate">Ставка, % годовых</label>
+          <label for="f-rate" data-i18n="rateLabel">Ставка, % годовых</label>
           <input type="number" id="f-rate" value="20" min="0" step="0.1">
         </div>
         <div>
-          <label for="f-term">Срок, мес.</label>
+          <label for="f-term" data-i18n="termLabel">Срок, мес.</label>
           <input type="number" id="f-term" value="12" min="1" max="360" step="1">
         </div>
       </div>
 
       <div class="field-row">
         <div>
-          <label for="f-issue-date">Дата выдачи</label>
+          <label for="f-issue-date" data-i18n="issueDateLabel">Дата выдачи</label>
           <input type="date" id="f-issue-date">
         </div>
         <div>
-          <label for="f-end-date">Дата окончания кредита</label>
+          <label for="f-end-date" data-i18n="endDateLabel">Дата окончания кредита</label>
           <input type="date" id="f-end-date">
         </div>
       </div>
 
       <div class="field-row">
         <div>
-          <label for="f-first-payment-date">Дата первого платежа</label>
+          <label for="f-first-payment-date" data-i18n="firstPaymentDateLabel">Дата первого платежа</label>
           <input type="date" id="f-first-payment-date">
         </div>
         <div>
-          <label for="f-payment-day">День платежа</label>
+          <label for="f-payment-day" data-i18n="paymentDayLabel">День платежа</label>
           <input type="number" id="f-payment-day" min="1" max="31" step="1">
         </div>
       </div>
 
-      <label class="f-method-label">Тип графика</label>
+      <label class="f-method-label" data-i18n="methodLabel">Тип графика</label>
       <div class="radio-group">
-        <label class="radio-option"><input type="radio" name="f-method" id="f-method-equal" value="equal" checked> Равнодолевой</label>
-        <label class="radio-option"><input type="radio" name="f-method" id="f-method-annuity" value="annuity"> Аннуитетный</label>
+        <label class="radio-option"><input type="radio" name="f-method" id="f-method-equal" value="equal" checked> <span data-i18n="methodEqual">Равнодолевой</span></label>
+        <label class="radio-option"><input type="radio" name="f-method" id="f-method-annuity" value="annuity"> <span data-i18n="methodAnnuity">Аннуитетный</span></label>
       </div>
 
       <div class="field-row">
         <div>
-          <label for="f-grace-od-start">Льгота по ОД, мес.</label>
+          <label for="f-grace-od-start" data-i18n="graceOdStartLabel">Льгота по ОД, мес.</label>
           <input type="text" inputmode="numeric" autocomplete="off" id="f-grace-od-start" value="0">
         </div>
         <div>
-          <label for="f-grace-pct-start">Льгота по %, мес.</label>
+          <label for="f-grace-pct-start" data-i18n="gracePctStartLabel">Льгота по %, мес.</label>
           <input type="text" inputmode="numeric" autocomplete="off" id="f-grace-pct-start" value="0">
         </div>
       </div>
 
       <div class="field-row">
         <div>
-          <label for="f-fee-pct">Сумма комиссии %</label>
+          <label for="f-fee-pct" data-i18n="feePctLabel">Сумма комиссии %</label>
           <input type="text" inputmode="decimal" id="f-fee-pct" value="0">
         </div>
         <div>
-          <label for="f-fee-fix">Комиссия в денежном выражении</label>
+          <label for="f-fee-fix" data-i18n="feeFixLabel">Комиссия в денежном выражении</label>
           <input type="text" inputmode="decimal" id="f-fee-fix" value="0">
         </div>
       </div>
 
       <div class="btn-row">
-        <button class="btn-primary" id="btn-calc">Рассчитать</button>
-        <button class="btn-secondary" id="btn-export" disabled>Экспорт в Excel</button>
+        <button class="btn-primary" id="btn-calc" data-i18n="calcBtn">Рассчитать</button>
+        <button class="btn-secondary" id="btn-export" disabled data-i18n="exportBtn">Экспорт в Excel</button>
       </div>
       <div class="error-block" id="error-block"></div>
     </div>
 
     <div class="panel">
       <details class="accordion">
-        <summary>Периодичность и распределение %</summary>
+        <summary data-i18n="periodicityHeading">Периодичность и распределение %</summary>
         <div class="accordion-body">
-          <label for="f-base-days">База дней в году</label>
+          <label for="f-base-days" data-i18n="baseDaysLabel">База дней в году</label>
           <input type="number" id="f-base-days" value="360" min="1" step="1">
 
           <div class="field-row">
             <div>
-              <label for="f-od-period">Периодичность погашения ОД</label>
+              <label for="f-od-period" data-i18n="odPeriodLabel">Периодичность погашения ОД</label>
               <select id="f-od-period">
-                <option value="monthly" selected>Ежемесячно</option>
-                <option value="quarterly">Ежеквартально</option>
-                <option value="semiannual">Раз в полгода</option>
-                <option value="annual">Раз в год</option>
-                <option value="end">В конце срока</option>
+                <option value="monthly" selected data-i18n="periodMonthly">Ежемесячно</option>
+                <option value="quarterly" data-i18n="periodQuarterly">Ежеквартально</option>
+                <option value="semiannual" data-i18n="periodSemiannual">Раз в полгода</option>
+                <option value="annual" data-i18n="periodAnnual">Раз в год</option>
+                <option value="end" data-i18n="periodEnd">В конце срока</option>
               </select>
             </div>
             <div>
-              <label for="f-pct-period">Периодичность погашения %</label>
+              <label for="f-pct-period" data-i18n="pctPeriodLabel">Периодичность погашения %</label>
               <select id="f-pct-period">
-                <option value="monthly" selected>Ежемесячно</option>
-                <option value="quarterly">Ежеквартально</option>
-                <option value="semiannual">Раз в полгода</option>
-                <option value="annual">Раз в год</option>
-                <option value="end">В конце срока</option>
+                <option value="monthly" selected data-i18n="periodMonthly">Ежемесячно</option>
+                <option value="quarterly" data-i18n="periodQuarterly">Ежеквартально</option>
+                <option value="semiannual" data-i18n="periodSemiannual">Раз в полгода</option>
+                <option value="annual" data-i18n="periodAnnual">Раз в год</option>
+                <option value="end" data-i18n="periodEnd">В конце срока</option>
               </select>
             </div>
           </div>
 
-          <label for="f-pool-method">Способ распределения пула % (накоплено за льготу)</label>
+          <label for="f-pool-method" data-i18n="poolMethodLabel">Способ распределения пула % (накоплено за льготу)</label>
           <select id="f-pool-method">
-            <option value="nearest" selected>Первый предстоящий платеж</option>
-            <option value="all">Все предстоящие платежи</option>
-            <option value="untilNextGrace">До следующего льготного периода</option>
-            <option value="manual">Ручное распределение</option>
+            <option value="nearest" selected data-i18n="poolNearest">Первый предстоящий платеж</option>
+            <option value="all" data-i18n="poolAll">Все предстоящие платежи</option>
+            <option value="untilNextGrace" data-i18n="poolUntilNextGrace">До следующего льготного периода</option>
+            <option value="manual" data-i18n="poolManual">Ручное распределение</option>
           </select>
-          <div class="field-note" id="pool-note-untilNextGrace" style="display:none;">«До следующего льготного периода»: пул равномерно распределяется на платежи до начала следующей льготы по %, а не до конца срока.</div>
-          <div class="field-note" id="pool-note-manual" style="display:none;">«Ручное распределение»: вес — сумма в денежном выражении, которая списывается из пула на эту дату (не доля в процентах). Если указанная сумма больше накопленного пула — списывается весь остаток пула.</div>
+          <div class="field-note" id="pool-note-untilNextGrace" style="display:none;" data-i18n="poolNoteUntilNextGrace">«До следующего льготного периода»: пул равномерно распределяется на платежи до начала следующей льготы по %, а не до конца срока.</div>
+          <div class="field-note" id="pool-note-manual" style="display:none;" data-i18n="poolNoteManual">«Ручное распределение»: вес — сумма в денежном выражении, которая списывается из пула на эту дату (не доля в процентах). Если указанная сумма больше накопленного пула — списывается весь остаток пула.</div>
         </div>
       </details>
     </div>
 
     <div class="panel">
       <details class="accordion">
-        <summary>Льготы по календарным месяцам</summary>
+        <summary data-i18n="seasonalGraceHeading">Льготы по календарным месяцам</summary>
         <div class="accordion-body">
           <div class="grace-table-wrap" style="max-height:none;">
             <table>
@@ -438,14 +462,14 @@
                 <col><col style="width:80px"><col style="width:80px">
               </colgroup>
               <thead>
-                <tr><th>Месяц</th><th>Льгота ОД</th><th>Льгота %</th></tr>
+                <tr><th data-i18n="monthColHeader">Месяц</th><th data-i18n="graceOdColHeader">Льгота ОД</th><th data-i18n="gracePctColHeader">Льгота %</th></tr>
               </thead>
               <tbody id="seasonal-grace-tbody"></tbody>
             </table>
           </div>
-          <div class="field-note">Отметка применяется сразу ко всем годам срока кредита: например, «Январь» для ОД проставит льготу по ОД на каждый январь в графике. Точечные правки в таблице выше после этого можно вносить вручную — обратной синхронизации нет.</div>
+          <div class="field-note" data-i18n="seasonalGraceNote">Отметка применяется сразу ко всем годам срока кредита: например, «Январь» для ОД проставит льготу по ОД на каждый январь в графике. Точечные правки в таблице выше после этого можно вносить вручную — обратной синхронизации нет.</div>
           <div class="btn-row">
-            <button class="btn-secondary" id="btn-reset-seasonal-grace" type="button">Сбросить</button>
+            <button class="btn-secondary" id="btn-reset-seasonal-grace" type="button" data-i18n="resetBtn">Сбросить</button>
           </div>
         </div>
       </details>
@@ -453,43 +477,43 @@
 
     <div class="panel">
       <details class="accordion">
-        <summary>Дополнительные ставки (2-я / 3-я)</summary>
+        <summary data-i18n="ratesHeading">Дополнительные ставки (2-я / 3-я)</summary>
         <div class="accordion-body">
           <fieldset>
             <legend class="legend-toggle">
-              <label><input type="checkbox" id="f-rate2-enabled"> Вторая ставка</label>
+              <label><input type="checkbox" id="f-rate2-enabled"> <span data-i18n="rate2Enabled">Вторая ставка</span></label>
             </legend>
             <div class="rate-block-content" id="f-rate2-content">
               <div class="field-row">
                 <div>
-                  <label for="f-rate2-date">Дата второй ставки</label>
+                  <label for="f-rate2-date" data-i18n="rate2DateLabel">Дата второй ставки</label>
                   <input type="date" id="f-rate2-date">
                 </div>
                 <div>
-                  <label for="f-rate2-pct">Вторая ставка, % годовых</label>
+                  <label for="f-rate2-pct" data-i18n="rate2PctLabel">Вторая ставка, % годовых</label>
                   <input type="number" id="f-rate2-pct" value="0" min="0" step="0.1">
                 </div>
               </div>
-              <div class="field-note">Начиная с указанной даты вторая ставка <b>заменяет</b> основную (используется вместо неё, а не добавляется к ней). Внутри периода, в который попадает эта дата, проценты считаются раздельно по дням до и после неё.</div>
+              <div class="field-note" data-i18n-html="rate2Note">Начиная с указанной даты вторая ставка <b>заменяет</b> основную (используется вместо неё, а не добавляется к ней). Внутри периода, в который попадает эта дата, проценты считаются раздельно по дням до и после неё.</div>
             </div>
           </fieldset>
 
           <fieldset>
             <legend class="legend-toggle">
-              <label><input type="checkbox" id="f-rate3-enabled"> Третья ставка</label>
+              <label><input type="checkbox" id="f-rate3-enabled"> <span data-i18n="rate3Enabled">Третья ставка</span></label>
             </legend>
             <div class="rate-block-content" id="f-rate3-content">
               <div class="field-row">
                 <div>
-                  <label for="f-rate3-date">Дата третьей ставки</label>
+                  <label for="f-rate3-date" data-i18n="rate3DateLabel">Дата третьей ставки</label>
                   <input type="date" id="f-rate3-date">
                 </div>
                 <div>
-                  <label for="f-rate3-pct">Третья ставка, % годовых</label>
+                  <label for="f-rate3-pct" data-i18n="rate3PctLabel">Третья ставка, % годовых</label>
                   <input type="number" id="f-rate3-pct" value="0" min="0" step="0.1">
                 </div>
               </div>
-              <div class="field-note">Работает так же, как вторая ставка: начиная с указанной даты третья ставка <b>заменяет</b> ту, что действовала до неё (основную или вторую). Проценты внутри периода переключения считаются раздельно по дням.</div>
+              <div class="field-note" data-i18n-html="rate3Note">Работает так же, как вторая ставка: начиная с указанной даты третья ставка <b>заменяет</b> ту, что действовала до неё (основную или вторую). Проценты внутри периода переключения считаются раздельно по дням.</div>
             </div>
           </fieldset>
         </div>
@@ -501,21 +525,21 @@
   <div>
     <div class="panel gesv-card">
       <div class="gesv-value" id="gesv-value">—</div>
-      <div class="gesv-label">Годовая эффективная ставка вознаграждения (ГЭСВ)</div>
+      <div class="gesv-label" data-i18n="gesvLabel">Годовая эффективная ставка вознаграждения (ГЭСВ)</div>
     </div>
 
     <div class="panel">
-      <h2>Проверочные показатели</h2>
+      <h2 data-i18n="checksHeading">Проверочные показатели</h2>
       <div class="tiles" id="tiles">
-        <div class="tile" data-tile="principal"><div class="tile-label">Погашено ОД</div><div class="tile-value">—</div></div>
-        <div class="tile" data-tile="pool"><div class="tile-label">Остаток пула</div><div class="tile-value">—</div></div>
-        <div class="tile" data-tile="bucket"><div class="tile-label">Остаток бакета</div><div class="tile-value">—</div></div>
-        <div class="tile" data-tile="balance"><div class="tile-label">Остаток долга</div><div class="tile-value">—</div></div>
+        <div class="tile" data-tile="principal"><div class="tile-label" data-i18n="tilePrincipal">Погашено ОД</div><div class="tile-value">—</div></div>
+        <div class="tile" data-tile="pool"><div class="tile-label" data-i18n="tilePool">Остаток пула</div><div class="tile-value">—</div></div>
+        <div class="tile" data-tile="bucket"><div class="tile-label" data-i18n="tileBucket">Остаток бакета</div><div class="tile-value">—</div></div>
+        <div class="tile" data-tile="balance"><div class="tile-label" data-i18n="tileBalance">Остаток долга</div><div class="tile-value">—</div></div>
       </div>
     </div>
 
     <div class="panel">
-      <h2>График платежей</h2>
+      <h2 data-i18n="scheduleHeading">График платежей</h2>
       <div class="schedule-wrap">
         <table id="schedule-table">
           <colgroup>
@@ -525,22 +549,22 @@
           </colgroup>
           <thead>
             <tr>
-              <th>№</th><th>Дата</th><th>Остаток на начало</th>
-              <th>Погашение ОД</th><th>Начислено %</th><th>% к уплате (итого)</th><th>Начисленные проценты за ЛП</th><th>Распределение процентов за ЛП</th>
-              <th>Итоговый платёж</th><th>Остаток на конец</th>
+              <th data-i18n="colNum">№</th><th data-i18n="colDate">Дата</th><th data-i18n="colBalanceStart">Остаток на начало</th>
+              <th data-i18n="colPrincipal">Погашение ОД</th><th data-i18n="colAccrued">Начислено %</th><th data-i18n="colTotalPct">% к уплате (итого)</th><th data-i18n="colAccruedLp">Начисленные проценты за ЛП</th><th data-i18n="colDistLp">Распределение процентов за ЛП</th>
+              <th data-i18n="colTotalPayment">Итоговый платёж</th><th data-i18n="colBalanceEnd">Остаток на конец</th>
             </tr>
           </thead>
           <tbody id="schedule-tbody">
-            <tr><td colspan="10" class="empty-hint">Нажмите «Рассчитать», чтобы увидеть график</td></tr>
+            <tr><td colspan="10" class="empty-hint" data-i18n="scheduleEmptyHint">Нажмите «Рассчитать», чтобы увидеть график</td></tr>
           </tbody>
         </table>
       </div>
-      <div class="note">Строки с активной льготой выделены цветом. Значок ⚠ у даты означает перенос с выходного/праздничного дня РК.</div>
+      <div class="note" data-i18n="scheduleFootnote">Строки с активной льготой выделены цветом. Значок ⚠ у даты означает перенос с выходного/праздничного дня РК.</div>
     </div>
 
     <div class="panel">
       <details class="accordion">
-        <summary>Льготы по месяцам</summary>
+        <summary data-i18n="graceMonthsHeading">Льготы по месяцам</summary>
         <div class="accordion-body">
           <div class="grace-table-wrap">
             <table>
@@ -548,19 +572,19 @@
                 <col style="width:64px"><col style="width:64px"><col><col style="width:64px"><col>
               </colgroup>
               <thead>
-                <tr><th>Мес.</th><th>Льгота ОД</th><th>Вес ОД (ручн.)</th><th>Льгота %</th><th>Вес % (ручн.)</th></tr>
+                <tr><th data-i18n="monthShortColHeader">Мес.</th><th data-i18n="graceOdColHeader">Льгота ОД</th><th data-i18n="weightOdColHeader">Вес ОД (ручн.)</th><th data-i18n="gracePctColHeader">Льгота %</th><th data-i18n="weightPctColHeader">Вес % (ручн.)</th></tr>
               </thead>
               <tbody id="grace-tbody"></tbody>
             </table>
           </div>
           <div class="inline-field">
-            <label for="f-pool-spread-months">Распределить % за ЛП на, мес.</label>
+            <label for="f-pool-spread-months" data-i18n="poolSpreadLabel">Распределить % за ЛП на, мес.</label>
             <input type="number" id="f-pool-spread-months" min="1" step="1" placeholder="—">
-            <button class="btn-secondary" id="btn-apply-pool-spread" type="button">Применить</button>
+            <button class="btn-secondary" id="btn-apply-pool-spread" type="button" data-i18n="applyBtn">Применить</button>
           </div>
-          <div class="field-note">После «Рассчитать» укажите число месяцев и нажмите «Применить»: проценты, накопленные за каждый льготный период (ЛП) в графике, равномерно распределятся на указанное число месяцев после него — подставится в «Вес % (ручн.)», способ распределения переключится на «Ручное распределение».</div>
+          <div class="field-note" data-i18n="poolSpreadNote">После «Рассчитать» укажите число месяцев и нажмите «Применить»: проценты, накопленные за каждый льготный период (ЛП) в графике, равномерно распределятся на указанное число месяцев после него — подставится в «Вес % (ручн.)», способ распределения переключится на «Ручное распределение».</div>
           <div class="btn-row">
-            <button class="btn-secondary" id="btn-reset-grace" type="button">Сбросить</button>
+            <button class="btn-secondary" id="btn-reset-grace" type="button" data-i18n="resetBtn">Сбросить</button>
           </div>
         </div>
       </details>
@@ -584,6 +608,325 @@ const KURBAN_AIT_KNOWN = {
 const PERIODICITY_INTERVAL = {
   monthly: 1, quarterly: 3, semiannual: 6, annual: 12, end: null,
 };
+
+/* ===================== Локализация (RU / KK) ===================== */
+
+let currentLang = 'ru';
+
+const I18N = {
+  ru: {
+    pageTitle: 'Калькулятор ГЭСВ',
+    subtitle: 'Расчёт годовой эффективной ставки вознаграждения методом XIRR.',
+    paramsHeading: 'Параметры кредита',
+    amountLabel: 'Сумма кредита',
+    rateLabel: 'Ставка, % годовых',
+    termLabel: 'Срок, мес.',
+    issueDateLabel: 'Дата выдачи',
+    endDateLabel: 'Дата окончания кредита',
+    firstPaymentDateLabel: 'Дата первого платежа',
+    paymentDayLabel: 'День платежа',
+    methodLabel: 'Тип графика',
+    methodEqual: 'Равнодолевой',
+    methodAnnuity: 'Аннуитетный',
+    graceOdStartLabel: 'Льгота по ОД, мес.',
+    gracePctStartLabel: 'Льгота по %, мес.',
+    feePctLabel: 'Сумма комиссии %',
+    feeFixLabel: 'Комиссия в денежном выражении',
+    calcBtn: 'Рассчитать',
+    exportBtn: 'Экспорт в Excel',
+    periodicityHeading: 'Периодичность и распределение %',
+    baseDaysLabel: 'База дней в году',
+    odPeriodLabel: 'Периодичность погашения ОД',
+    pctPeriodLabel: 'Периодичность погашения %',
+    periodMonthly: 'Ежемесячно',
+    periodQuarterly: 'Ежеквартально',
+    periodSemiannual: 'Раз в полгода',
+    periodAnnual: 'Раз в год',
+    periodEnd: 'В конце срока',
+    poolMethodLabel: 'Способ распределения пула % (накоплено за льготу)',
+    poolNearest: 'Первый предстоящий платеж',
+    poolAll: 'Все предстоящие платежи',
+    poolUntilNextGrace: 'До следующего льготного периода',
+    poolManual: 'Ручное распределение',
+    poolNoteUntilNextGrace: '«До следующего льготного периода»: пул равномерно распределяется на платежи до начала следующей льготы по %, а не до конца срока.',
+    poolNoteManual: '«Ручное распределение»: вес — сумма в денежном выражении, которая списывается из пула на эту дату (не доля в процентах). Если указанная сумма больше накопленного пула — списывается весь остаток пула.',
+    seasonalGraceHeading: 'Льготы по календарным месяцам',
+    monthColHeader: 'Месяц',
+    graceOdColHeader: 'Льгота ОД',
+    gracePctColHeader: 'Льгота %',
+    seasonalGraceNote: 'Отметка применяется сразу ко всем годам срока кредита: например, «Январь» для ОД проставит льготу по ОД на каждый январь в графике. Точечные правки в таблице выше после этого можно вносить вручную — обратной синхронизации нет.',
+    resetBtn: 'Сбросить',
+    ratesHeading: 'Дополнительные ставки (2-я / 3-я)',
+    rate2Enabled: 'Вторая ставка',
+    rate2DateLabel: 'Дата второй ставки',
+    rate2PctLabel: 'Вторая ставка, % годовых',
+    rate2Note: 'Начиная с указанной даты вторая ставка <b>заменяет</b> основную (используется вместо неё, а не добавляется к ней). Внутри периода, в который попадает эта дата, проценты считаются раздельно по дням до и после неё.',
+    rate3Enabled: 'Третья ставка',
+    rate3DateLabel: 'Дата третьей ставки',
+    rate3PctLabel: 'Третья ставка, % годовых',
+    rate3Note: 'Работает так же, как вторая ставка: начиная с указанной даты третья ставка <b>заменяет</b> ту, что действовала до неё (основную или вторую). Проценты внутри периода переключения считаются раздельно по дням.',
+    gesvLabel: 'Годовая эффективная ставка вознаграждения (ГЭСВ)',
+    checksHeading: 'Проверочные показатели',
+    tilePrincipal: 'Погашено ОД',
+    tilePool: 'Остаток пула',
+    tileBucket: 'Остаток бакета',
+    tileBalance: 'Остаток долга',
+    scheduleHeading: 'График платежей',
+    colNum: '№',
+    colDate: 'Дата',
+    colBalanceStart: 'Остаток на начало',
+    colPrincipal: 'Погашение ОД',
+    colAccrued: 'Начислено %',
+    colTotalPct: '% к уплате (итого)',
+    colAccruedLp: 'Начисленные проценты за ЛП',
+    colDistLp: 'Распределение процентов за ЛП',
+    colTotalPayment: 'Итоговый платёж',
+    colBalanceEnd: 'Остаток на конец',
+    scheduleEmptyHint: 'Нажмите «Рассчитать», чтобы увидеть график',
+    scheduleFootnote: 'Строки с активной льготой выделены цветом. Значок ⚠ у даты означает перенос с выходного/праздничного дня РК.',
+    graceMonthsHeading: 'Льготы по месяцам',
+    monthShortColHeader: 'Мес.',
+    weightOdColHeader: 'Вес ОД (ручн.)',
+    weightPctColHeader: 'Вес % (ручн.)',
+    poolSpreadLabel: 'Распределить % за ЛП на, мес.',
+    applyBtn: 'Применить',
+    poolSpreadNote: 'После «Рассчитать» укажите число месяцев и нажмите «Применить»: проценты, накопленные за каждый льготный период (ЛП) в графике, равномерно распределятся на указанное число месяцев после него — подставится в «Вес % (ручн.)», способ распределения переключится на «Ручное распределение».',
+    errCalc: 'Ошибка расчёта',
+    adjBadgeTitle: 'Дата перенесена с выходного/праздничного дня',
+    err_amount: 'Сумма кредита должна быть больше нуля.',
+    err_rate: 'Ставка не может быть отрицательной.',
+    err_issueDate: 'Укажите дату выдачи кредита.',
+    err_term: 'Срок должен быть от 1 до 360 месяцев.',
+    err_baseDays: 'База расчёта дней в году должна быть больше нуля.',
+    err_paymentDay: 'День платежа должен быть от 1 до 31.',
+    err_firstPaymentDate: 'Дата первого платежа должна быть позже даты выдачи.',
+    err_fees: 'Комиссии не могут быть отрицательными.',
+    err_rate2: 'Вторая ставка не может быть отрицательной.',
+    err_rate3: 'Третья ставка не может быть отрицательной.',
+    err_weightPct: 'Вес ручного распределения не может быть отрицательным.',
+    err_weightOd: 'Вес ОД ручного распределения не может быть отрицательным.',
+    err_needCalcFirst: 'Сначала нажмите «Рассчитать» — распределение считается от текущего графика.',
+    err_noGraceEpisodes: 'В графике нет льготных периодов по % — распределять нечего.',
+    methodEqualFull: 'Равнодолевой (равные доли ОД)',
+    methodAnnuityFull: 'Аннуитетный (равный платёж)',
+    excel_sheetName: 'График',
+    excel_paramsTitle: 'ПАРАМЕТРЫ КРЕДИТА',
+    excel_resultsTitle: 'РЕЗУЛЬТАТЫ РАСЧЁТА',
+    excel_scheduleTitle: 'ГРАФИК ПЛАТЕЖЕЙ',
+    excel_methodLabel: 'Тип графика',
+    excel_amountLabel: 'Сумма кредита',
+    excel_rateLabel: 'Ставка, % годовых',
+    excel_rate2Label: 'Вторая ставка, % годовых',
+    excel_rate2DateLabel: 'Дата второй ставки',
+    excel_rate3Label: 'Третья ставка, % годовых',
+    excel_rate3DateLabel: 'Дата третьей ставки',
+    excel_issueDateLabel: 'Дата выдачи',
+    excel_paymentDayLabel: 'День платежа',
+    excel_endDateLabel: 'Дата окончания кредита',
+    excel_termLabel: 'Срок, мес.',
+    excel_baseDaysLabel: 'База дней в году',
+    excel_odPeriodLabel: 'Периодичность погашения ОД',
+    excel_pctPeriodLabel: 'Периодичность погашения %',
+    excel_poolMethodLabel: 'Способ распределения пула %',
+    excel_feePctLabel: 'Комиссия за выдачу, %',
+    excel_feeFixLabel: 'Комиссия за выдачу, фикс.',
+    excel_gesvLabel: 'ГЭСВ',
+    excel_principalLabel: 'Погашено ОД',
+    excel_poolLabel: 'Остаток пула',
+    excel_bucketLabel: 'Остаток бакета',
+    excel_balanceLabel: 'Остаток долга',
+    excel_tileTotalPayment: 'Общий платёж',
+    excel_tilePrincipal: 'Погашение ОД',
+    excel_tileInterest: 'Начисленные проценты',
+    excel_tileCount: 'Количество платежей',
+    excel_colNum: '№ платежа',
+    excel_colDate: 'Дата',
+    excel_colBalanceStart: 'Остаток на начало',
+    excel_colPrincipal: 'Погашение ОД',
+    excel_colAccrued: 'Начислено %',
+    excel_colTotalPct: '% к уплате (итого)',
+    excel_colAccruedLp: 'Начисленные проценты за ЛП',
+    excel_colDistLp: 'Распределение процентов за ЛП',
+    excel_colTotalPayment: 'Итоговый платёж',
+    excel_colBalanceEnd: 'Остаток на конец',
+    excel_disbursement: 'Выдача',
+    excel_total: 'ИТОГО',
+    excel_errCalc: 'Ошибка расчёта',
+    excel_adjustedSuffix: ' (перенесена)',
+  },
+  kk: {
+    pageTitle: 'СЖТМ калькуляторы',
+    subtitle: 'Сыйақының жылдық тиімді мөлшерлемесін XIRR әдісімен есептеу.',
+    paramsHeading: 'Кредит параметрлері',
+    amountLabel: 'Кредит сомасы',
+    rateLabel: 'Мөлшерлеме, жылдық %',
+    termLabel: 'Мерзімі, ай',
+    issueDateLabel: 'Берілген күні',
+    endDateLabel: 'Кредиттің аяқталу күні',
+    firstPaymentDateLabel: 'Алғашқы төлем күні',
+    paymentDayLabel: 'Төлем күні',
+    methodLabel: 'Кесте түрі',
+    methodEqual: 'Тең үлестік',
+    methodAnnuity: 'Аннуитеттік',
+    graceOdStartLabel: 'НБ бойынша жеңілдік, ай',
+    gracePctStartLabel: 'Сыйақы бойынша жеңілдік, ай',
+    feePctLabel: 'Комиссия сомасы, %',
+    feeFixLabel: 'Комиссия ақшалай мәнде',
+    calcBtn: 'Есептеу',
+    exportBtn: 'Excel-ге экспорттау',
+    periodicityHeading: 'Мерзімділік және % бөлу',
+    baseDaysLabel: 'Жылдағы күндер базасы',
+    odPeriodLabel: 'НБ өтеу мерзімділігі',
+    pctPeriodLabel: 'Сыйақы өтеу мерзімділігі',
+    periodMonthly: 'Ай сайын',
+    periodQuarterly: 'Тоқсан сайын',
+    periodSemiannual: 'Жарты жылда бір рет',
+    periodAnnual: 'Жылына бір рет',
+    periodEnd: 'Мерзім соңында',
+    poolMethodLabel: '% пулын бөлу тәсілі (жеңілдік бойынша жинақталған)',
+    poolNearest: 'Алдағы бірінші төлем',
+    poolAll: 'Барлық алдағы төлемдер',
+    poolUntilNextGrace: 'Келесі жеңілдік кезеңіне дейін',
+    poolManual: 'Қолмен бөлу',
+    poolNoteUntilNextGrace: '«Келесі жеңілдік кезеңіне дейін»: пул сыйақы бойынша келесі жеңілдік басталғанға дейінгі төлемдерге тең бөлінеді, мерзім соңына дейін емес.',
+    poolNoteManual: '«Қолмен бөлу»: салмақ — осы күнге пулдан есептен шығарылатын ақшалай сома (пайыздық үлес емес). Көрсетілген сома жинақталған пулдан асып кетсе — пулдың бүкіл қалдығы есептен шығарылады.',
+    seasonalGraceHeading: 'Күнтізбелік айлар бойынша жеңілдіктер',
+    monthColHeader: 'Ай',
+    graceOdColHeader: 'НБ жеңілдігі',
+    gracePctColHeader: 'Сыйақы жеңілдігі',
+    seasonalGraceNote: 'Белгі кредит мерзімінің барлық жылдарына бірден қолданылады: мысалы, НБ үшін «Қаңтар» кестедегі әрбір қаңтарға НБ жеңілдігін қояды. Осыдан кейін жоғарыдағы кестеге нүктелік түзетулерді қолмен енгізуге болады — кері синхрондау жоқ.',
+    resetBtn: 'Тазалау',
+    ratesHeading: 'Қосымша мөлшерлемелер (2-ші / 3-ші)',
+    rate2Enabled: 'Екінші мөлшерлеме',
+    rate2DateLabel: 'Екінші мөлшерлеме күні',
+    rate2PctLabel: 'Екінші мөлшерлеме, жылдық %',
+    rate2Note: 'Көрсетілген күннен бастап екінші мөлшерлеме негізгісін <b>алмастырады</b> (оған қосылмайды, орнына қолданылады). Осы күн түсетін кезең ішінде сыйақы оған дейінгі және кейінгі күндер бойынша бөлек есептеледі.',
+    rate3Enabled: 'Үшінші мөлшерлеме',
+    rate3DateLabel: 'Үшінші мөлшерлеме күні',
+    rate3PctLabel: 'Үшінші мөлшерлеме, жылдық %',
+    rate3Note: 'Екінші мөлшерлеме сияқты жұмыс істейді: көрсетілген күннен бастап үшінші мөлшерлеме бұған дейін қолданыста болған мөлшерлемені (негізгісін немесе екіншісін) <b>алмастырады</b>. Ауысу кезеңі ішінде сыйақы күндер бойынша бөлек есептеледі.',
+    gesvLabel: 'Сыйақының жылдық тиімді мөлшерлемесі (СЖТМ)',
+    checksHeading: 'Тексеру көрсеткіштері',
+    tilePrincipal: 'Өтелген НБ',
+    tilePool: 'Пул қалдығы',
+    tileBucket: 'Бакет қалдығы',
+    tileBalance: 'Борыш қалдығы',
+    scheduleHeading: 'Төлем кестесі',
+    colNum: '№',
+    colDate: 'Күні',
+    colBalanceStart: 'Басына қалдық',
+    colPrincipal: 'НБ өтеу',
+    colAccrued: 'Есептелген сыйақы',
+    colTotalPct: 'Төленетін сыйақы (жиыны)',
+    colAccruedLp: 'ЖК бойынша есептелген сыйақы',
+    colDistLp: 'ЖК бойынша сыйақы бөлу',
+    colTotalPayment: 'Қорытынды төлем',
+    colBalanceEnd: 'Соңына қалдық',
+    scheduleEmptyHint: 'Кестені көру үшін «Есептеу» түймесін басыңыз',
+    scheduleFootnote: 'Жеңілдігі бар жолдар түспен ерекшеленген. Күн жанындағы ⚠ белгісі ҚР демалыс/мереке күнінен ауыстырылғанын білдіреді.',
+    graceMonthsHeading: 'Айлар бойынша жеңілдіктер',
+    monthShortColHeader: 'Ай',
+    weightOdColHeader: 'НБ салмағы (қолмен)',
+    weightPctColHeader: 'Сыйақы салмағы (қолмен)',
+    poolSpreadLabel: 'ЖК бойынша сыйақыны бөлу, ай',
+    applyBtn: 'Қолдану',
+    poolSpreadNote: '«Есептеу» түймесін басқаннан кейін ай санын көрсетіп, «Қолдану» түймесін басыңыз: кестедегі әрбір жеңілдік кезеңі (ЖК) бойынша жинақталған сыйақы одан кейінгі көрсетілген ай санына тең бөлінеді — «Сыйақы салмағы (қолмен)» өрісіне қойылады, бөлу тәсілі «Қолмен бөлу» болып ауысады.',
+    errCalc: 'Есептеу қатесі',
+    adjBadgeTitle: 'Күн демалыс/мереке күнінен ауыстырылды',
+    err_amount: 'Кредит сомасы нөлден үлкен болуы керек.',
+    err_rate: 'Мөлшерлеме теріс бола алмайды.',
+    err_issueDate: 'Кредиттің берілген күнін көрсетіңіз.',
+    err_term: 'Мерзім 1-ден 360 айға дейін болуы керек.',
+    err_baseDays: 'Жылдағы күндер есебінің базасы нөлден үлкен болуы керек.',
+    err_paymentDay: 'Төлем күні 1-ден 31-ге дейін болуы керек.',
+    err_firstPaymentDate: 'Алғашқы төлем күні берілген күннен кейін болуы керек.',
+    err_fees: 'Комиссиялар теріс бола алмайды.',
+    err_rate2: 'Екінші мөлшерлеме теріс бола алмайды.',
+    err_rate3: 'Үшінші мөлшерлеме теріс бола алмайды.',
+    err_weightPct: 'Қолмен бөлу салмағы теріс бола алмайды.',
+    err_weightOd: 'НБ қолмен бөлу салмағы теріс бола алмайды.',
+    err_needCalcFirst: 'Алдымен «Есептеу» түймесін басыңыз — бөлу ағымдағы кесте бойынша есептеледі.',
+    err_noGraceEpisodes: 'Кестеде сыйақы бойынша жеңілдік кезеңдері жоқ — бөлетін ештеңе жоқ.',
+    methodEqualFull: 'Тең үлестік (НБ тең үлестермен)',
+    methodAnnuityFull: 'Аннуитеттік (бірдей төлем)',
+    excel_sheetName: 'Кесте',
+    excel_paramsTitle: 'КРЕДИТ ПАРАМЕТРЛЕРІ',
+    excel_resultsTitle: 'ЕСЕПТЕУ НӘТИЖЕЛЕРІ',
+    excel_scheduleTitle: 'ТӨЛЕМ КЕСТЕСІ',
+    excel_methodLabel: 'Кесте түрі',
+    excel_amountLabel: 'Кредит сомасы',
+    excel_rateLabel: 'Мөлшерлеме, жылдық %',
+    excel_rate2Label: 'Екінші мөлшерлеме, жылдық %',
+    excel_rate2DateLabel: 'Екінші мөлшерлеме күні',
+    excel_rate3Label: 'Үшінші мөлшерлеме, жылдық %',
+    excel_rate3DateLabel: 'Үшінші мөлшерлеме күні',
+    excel_issueDateLabel: 'Берілген күні',
+    excel_paymentDayLabel: 'Төлем күні',
+    excel_endDateLabel: 'Кредиттің аяқталу күні',
+    excel_termLabel: 'Мерзімі, ай',
+    excel_baseDaysLabel: 'Жылдағы күндер базасы',
+    excel_odPeriodLabel: 'НБ өтеу мерзімділігі',
+    excel_pctPeriodLabel: 'Сыйақы өтеу мерзімділігі',
+    excel_poolMethodLabel: 'Сыйақы пулын бөлу тәсілі',
+    excel_feePctLabel: 'Беру комиссиясы, %',
+    excel_feeFixLabel: 'Беру комиссиясы, тіркелген',
+    excel_gesvLabel: 'СЖТМ',
+    excel_principalLabel: 'Өтелген НБ',
+    excel_poolLabel: 'Пул қалдығы',
+    excel_bucketLabel: 'Бакет қалдығы',
+    excel_balanceLabel: 'Борыш қалдығы',
+    excel_tileTotalPayment: 'Жалпы төлем',
+    excel_tilePrincipal: 'НБ өтеу',
+    excel_tileInterest: 'Есептелген сыйақы',
+    excel_tileCount: 'Төлемдер саны',
+    excel_colNum: 'Төлем №',
+    excel_colDate: 'Күні',
+    excel_colBalanceStart: 'Басына қалдық',
+    excel_colPrincipal: 'НБ өтеу',
+    excel_colAccrued: 'Есептелген сыйақы',
+    excel_colTotalPct: 'Төленетін сыйақы (жиыны)',
+    excel_colAccruedLp: 'ЖК бойынша есептелген сыйақы',
+    excel_colDistLp: 'ЖК бойынша сыйақы бөлу',
+    excel_colTotalPayment: 'Қорытынды төлем',
+    excel_colBalanceEnd: 'Соңына қалдық',
+    excel_disbursement: 'Берілді',
+    excel_total: 'БАРЛЫҒЫ',
+    excel_errCalc: 'Есептеу қатесі',
+    excel_adjustedSuffix: ' (ауыстырылды)',
+  },
+};
+
+function t(key) { return (I18N[currentLang] && I18N[currentLang][key]) || I18N.ru[key] || key; }
+
+const MONTHS_SHORT = {
+  ru: ['янв', 'февр', 'март', 'апр', 'май', 'июн', 'июл', 'авг', 'сент', 'окт', 'нояб', 'дек'],
+  kk: ['қаң', 'ақп', 'нау', 'сәу', 'мам', 'мау', 'шіл', 'там', 'қыр', 'қаз', 'қар', 'жел'],
+};
+const MONTHS_FULL = {
+  ru: ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'],
+  kk: ['Қаңтар', 'Ақпан', 'Наурыз', 'Сәуір', 'Мамыр', 'Маусым', 'Шілде', 'Тамыз', 'Қыркүйек', 'Қазан', 'Қараша', 'Желтоқсан'],
+};
+
+// Применяет текущий язык ко всем статическим элементам с data-i18n /
+// data-i18n-html и переключателю языка; динамические таблицы и график
+// перерисовываются отдельно вызывающим кодом (setLanguage).
+function applyI18n() {
+  document.documentElement.lang = currentLang;
+  document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
+  document.querySelectorAll('[data-i18n-html]').forEach(el => { el.innerHTML = t(el.dataset.i18nHtml); });
+  document.getElementById('btn-lang-ru').classList.toggle('active', currentLang === 'ru');
+  document.getElementById('btn-lang-kk').classList.toggle('active', currentLang === 'kk');
+}
+
+function setLanguage(lang) {
+  if (lang !== 'ru' && lang !== 'kk') return;
+  currentLang = lang;
+  applyI18n();
+  renderGraceTable();
+  renderSeasonalGraceTable();
+  if (lastResult) renderResults(lastResult);
+  else document.getElementById('schedule-tbody').innerHTML = `<tr><td colspan="10" class="empty-hint">${t('scheduleEmptyHint')}</td></tr>`;
+}
 
 /* ===================== Дата: утилиты ===================== */
 
@@ -843,19 +1186,19 @@ function resolveInterval(periodicity, term) {
 }
 
 function validateInputs(p) {
-  if (!(p.amount > 0)) return 'Сумма кредита должна быть больше нуля.';
-  if (!(p.ratePct >= 0)) return 'Ставка не может быть отрицательной.';
-  if (!p.issueDate || isNaN(p.issueDate.getTime())) return 'Укажите дату выдачи кредита.';
-  if (!Number.isInteger(p.termMonths) || p.termMonths < 1 || p.termMonths > 360) return 'Срок должен быть от 1 до 360 месяцев.';
-  if (!(p.baseDays > 0)) return 'База расчёта дней в году должна быть больше нуля.';
-  if (p.paymentDay !== null && (!Number.isInteger(p.paymentDay) || p.paymentDay < 1 || p.paymentDay > 31)) return 'День платежа должен быть от 1 до 31.';
-  if (p.firstPaymentDate && p.firstPaymentDate <= p.issueDate) return 'Дата первого платежа должна быть позже даты выдачи.';
-  if (!(p.feePct >= 0) || !(p.feeFix >= 0)) return 'Комиссии не могут быть отрицательными.';
-  if (!(p.rate2Pct >= 0)) return 'Вторая ставка не может быть отрицательной.';
-  if (!(p.rate3Pct >= 0)) return 'Третья ставка не может быть отрицательной.';
+  if (!(p.amount > 0)) return t('err_amount');
+  if (!(p.ratePct >= 0)) return t('err_rate');
+  if (!p.issueDate || isNaN(p.issueDate.getTime())) return t('err_issueDate');
+  if (!Number.isInteger(p.termMonths) || p.termMonths < 1 || p.termMonths > 360) return t('err_term');
+  if (!(p.baseDays > 0)) return t('err_baseDays');
+  if (p.paymentDay !== null && (!Number.isInteger(p.paymentDay) || p.paymentDay < 1 || p.paymentDay > 31)) return t('err_paymentDay');
+  if (p.firstPaymentDate && p.firstPaymentDate <= p.issueDate) return t('err_firstPaymentDate');
+  if (!(p.feePct >= 0) || !(p.feeFix >= 0)) return t('err_fees');
+  if (!(p.rate2Pct >= 0)) return t('err_rate2');
+  if (!(p.rate3Pct >= 0)) return t('err_rate3');
   for (const m of p.months) {
-    if (!(m.weight >= 0)) return 'Вес ручного распределения не может быть отрицательным.';
-    if (!(m.weightOD >= 0)) return 'Вес ОД ручного распределения не может быть отрицательным.';
+    if (!(m.weight >= 0)) return t('err_weightPct');
+    if (!(m.weightOD >= 0)) return t('err_weightOd');
   }
   return null;
 }
@@ -1188,7 +1531,7 @@ function resetAllGrace() {
 // расчёту (lastResult) — при изменении графика нужно нажать «Применить» снова.
 function applyPoolSpreadAll(months) {
   if (!lastResult) {
-    showError('Сначала нажмите «Рассчитать» — распределение считается от текущего графика.');
+    showError(t('err_needCalcFirst'));
     return;
   }
   const rows = lastResult.rows;
@@ -1215,7 +1558,7 @@ function applyPoolSpreadAll(months) {
     }
   }
   if (!applied) {
-    showError('В графике нет льготных периодов по % — распределять нечего.');
+    showError(t('err_noGraceEpisodes'));
     return;
   }
   renderGraceTable();
@@ -1225,8 +1568,6 @@ function applyPoolSpreadAll(months) {
     poolSelect.dispatchEvent(new Event('change'));
   }
 }
-
-const SHORT_MONTH_NAMES = ['янв', 'февр', 'март', 'апр', 'май', 'июн', 'июл', 'авг', 'сент', 'окт', 'нояб', 'дек'];
 
 // Подпись месяца строки таблицы льгот — фактические месяц и год этого платежа
 // по текущим дате выдачи/дате первого платежа/дню платежа (та же логика дат,
@@ -1239,7 +1580,7 @@ function graceMonthLabel(idx) {
   const d = idx === 0
     ? (parseDateField('f-first-payment-date') || addMonthsClamped(issueDate, 1, paymentDay))
     : addMonthsClamped(issueDate, idx + 1, paymentDay);
-  return `${SHORT_MONTH_NAMES[d.getMonth()]} ${String(d.getFullYear()).slice(-2)}`;
+  return `${MONTHS_SHORT[currentLang][d.getMonth()]} ${String(d.getFullYear()).slice(-2)}`;
 }
 
 function renderGraceTable() {
@@ -1276,8 +1617,6 @@ function renderGraceTable() {
   tbody.querySelectorAll('input.weight-input[data-field="weight"]').forEach(attachWeightODInputBehavior);
 }
 
-const CALENDAR_MONTH_NAMES = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
-
 // Разово проставляет/снимает льготу (ОД или %) на всех месяцах графика, чьи
 // фактические даты попадают в указанный календарный месяц — то есть сразу на
 // каждый год срока. Работает по текущим дате выдачи/дню платежа на момент
@@ -1310,7 +1649,7 @@ function applyStartGrace(field, months) {
 function renderSeasonalGraceTable() {
   const tbody = document.getElementById('seasonal-grace-tbody');
   tbody.innerHTML = '';
-  CALENDAR_MONTH_NAMES.forEach((name, idx) => {
+  MONTHS_FULL[currentLang].forEach((name, idx) => {
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td style="text-align:left;">${name}</td>
@@ -1371,7 +1710,7 @@ function attachWeightODInputBehavior(inp) {
   inp.addEventListener('keydown', focusNextRowOnEnter);
 }
 
-const METHOD_LABELS = { equal: 'Равнодолевой (равные доли ОД)', annuity: 'Аннуитетный (равный платёж)' };
+function methodLabelFull(method) { return method === 'annuity' ? t('methodAnnuityFull') : t('methodEqualFull'); }
 
 function readParams() {
   const dateStr = document.getElementById('f-issue-date').value;
@@ -1420,7 +1759,7 @@ function setTile(tile, value, isZeroTarget) {
 
 function renderResults(result) {
   document.getElementById('gesv-value').textContent = result.gesv === null
-    ? 'Ошибка расчёта'
+    ? t('errCalc')
     : (result.gesv * 100).toFixed(2) + '%';
 
   setTile('principal', result.checks.sumPrincipal, false);
@@ -1434,7 +1773,7 @@ function renderResults(result) {
     const tr = document.createElement('tr');
     if (r.graceOD || r.gracePct) tr.classList.add('grace-row');
     const dateHtml = formatDateRu(r.date) + (r.adjusted
-      ? ` <span class="adj-badge" title="Дата перенесена с выходного/праздничного дня">⚠</span>` : '');
+      ? ` <span class="adj-badge" title="${t('adjBadgeTitle')}">⚠</span>` : '');
     tr.innerHTML = `
       <td>${r.i}</td>
       <td>${dateHtml}</td>
@@ -1460,13 +1799,13 @@ function doCalculate() {
     lastResult = null;
     document.getElementById('btn-export').disabled = true;
     document.getElementById('gesv-value').textContent = '—';
-    document.querySelectorAll('.tile').forEach(t => { t.classList.remove('ok', 'bad'); t.querySelector('.tile-value').textContent = '—'; });
-    document.getElementById('schedule-tbody').innerHTML = '<tr><td colspan="10" class="empty-hint">Нажмите «Рассчитать», чтобы увидеть график</td></tr>';
+    document.querySelectorAll('.tile').forEach(tile => { tile.classList.remove('ok', 'bad'); tile.querySelector('.tile-value').textContent = '—'; });
+    document.getElementById('schedule-tbody').innerHTML = `<tr><td colspan="10" class="empty-hint">${t('scheduleEmptyHint')}</td></tr>`;
     return;
   }
   result.params = params;
   result.labels = {
-    method: METHOD_LABELS[document.querySelector('input[name="f-method"]:checked').value],
+    method: methodLabelFull(document.querySelector('input[name="f-method"]:checked').value),
     odPeriodicity: document.getElementById('f-od-period').selectedOptions[0].textContent,
     pctPeriodicity: document.getElementById('f-pct-period').selectedOptions[0].textContent,
     poolMethod: document.getElementById('f-pool-method').selectedOptions[0].textContent,
@@ -1498,34 +1837,34 @@ function exportExcel() {
 
   // ---- Параметры кредита (слева) и результаты расчёта (в центре) ----
   const leftRows = [];
-  leftRows.push({ label: 'Тип графика', value: labels.method, type: 'str' });
-  leftRows.push({ label: 'Сумма кредита', value: p.amount, type: 'num' });
-  leftRows.push({ label: 'Ставка, % годовых', value: p.ratePct, type: 'num' });
+  leftRows.push({ label: t('excel_methodLabel'), value: labels.method, type: 'str' });
+  leftRows.push({ label: t('excel_amountLabel'), value: p.amount, type: 'num' });
+  leftRows.push({ label: t('excel_rateLabel'), value: p.ratePct, type: 'num' });
   if (p.rate2Date && p.rate2Pct) {
-    leftRows.push({ label: 'Вторая ставка, % годовых', value: p.rate2Pct, type: 'num' });
-    leftRows.push({ label: 'Дата второй ставки', value: formatDateRu(p.rate2Date), type: 'str' });
+    leftRows.push({ label: t('excel_rate2Label'), value: p.rate2Pct, type: 'num' });
+    leftRows.push({ label: t('excel_rate2DateLabel'), value: formatDateRu(p.rate2Date), type: 'str' });
   }
   if (p.rate3Date && p.rate3Pct) {
-    leftRows.push({ label: 'Третья ставка, % годовых', value: p.rate3Pct, type: 'num' });
-    leftRows.push({ label: 'Дата третьей ставки', value: formatDateRu(p.rate3Date), type: 'str' });
+    leftRows.push({ label: t('excel_rate3Label'), value: p.rate3Pct, type: 'num' });
+    leftRows.push({ label: t('excel_rate3DateLabel'), value: formatDateRu(p.rate3Date), type: 'str' });
   }
-  leftRows.push({ label: 'Дата выдачи', value: formatDateRu(p.issueDate), type: 'str' });
-  if (p.paymentDay) leftRows.push({ label: 'День платежа', value: p.paymentDay, type: 'num' });
-  leftRows.push({ label: 'Дата окончания кредита', value: formatDateRu(p.endDate || addMonthsClamped(p.issueDate, p.termMonths)), type: 'str' });
-  leftRows.push({ label: 'Срок, мес.', value: p.termMonths, type: 'num' });
-  leftRows.push({ label: 'База дней в году', value: p.baseDays, type: 'num' });
-  leftRows.push({ label: 'Периодичность погашения ОД', value: labels.odPeriodicity, type: 'str' });
-  leftRows.push({ label: 'Периодичность погашения %', value: labels.pctPeriodicity, type: 'str' });
-  leftRows.push({ label: 'Способ распределения пула %', value: labels.poolMethod, type: 'str' });
-  leftRows.push({ label: 'Комиссия за выдачу, %', value: p.feePct, type: 'num' });
-  leftRows.push({ label: 'Комиссия за выдачу, фикс.', value: p.feeFix, type: 'num' });
+  leftRows.push({ label: t('excel_issueDateLabel'), value: formatDateRu(p.issueDate), type: 'str' });
+  if (p.paymentDay) leftRows.push({ label: t('excel_paymentDayLabel'), value: p.paymentDay, type: 'num' });
+  leftRows.push({ label: t('excel_endDateLabel'), value: formatDateRu(p.endDate || addMonthsClamped(p.issueDate, p.termMonths)), type: 'str' });
+  leftRows.push({ label: t('excel_termLabel'), value: p.termMonths, type: 'num' });
+  leftRows.push({ label: t('excel_baseDaysLabel'), value: p.baseDays, type: 'num' });
+  leftRows.push({ label: t('excel_odPeriodLabel'), value: labels.odPeriodicity, type: 'str' });
+  leftRows.push({ label: t('excel_pctPeriodLabel'), value: labels.pctPeriodicity, type: 'str' });
+  leftRows.push({ label: t('excel_poolMethodLabel'), value: labels.poolMethod, type: 'str' });
+  leftRows.push({ label: t('excel_feePctLabel'), value: p.feePct, type: 'num' });
+  leftRows.push({ label: t('excel_feeFixLabel'), value: p.feeFix, type: 'num' });
 
   const midRows = [];
-  midRows.push({ label: 'ГЭСВ', value: lastResult.gesv, type: 'pct' });
-  midRows.push({ label: 'Погашено ОД', value: checks.sumPrincipal, type: 'num' });
-  midRows.push({ label: 'Остаток пула', value: checks.poolEnd, type: 'num' });
-  midRows.push({ label: 'Остаток бакета', value: checks.bucketEnd, type: 'num' });
-  midRows.push({ label: 'Остаток долга', value: checks.balanceEnd, type: 'num' });
+  midRows.push({ label: t('excel_gesvLabel'), value: lastResult.gesv, type: 'pct' });
+  midRows.push({ label: t('excel_principalLabel'), value: checks.sumPrincipal, type: 'num' });
+  midRows.push({ label: t('excel_poolLabel'), value: checks.poolEnd, type: 'num' });
+  midRows.push({ label: t('excel_bucketLabel'), value: checks.bucketEnd, type: 'num' });
+  midRows.push({ label: t('excel_balanceLabel'), value: checks.balanceEnd, type: 'num' });
 
   const infoCell = (row) => {
     if (!row) return '<Cell/><Cell/>';
@@ -1533,7 +1872,7 @@ function exportExcel() {
       ? `<Cell ss:StyleID="value"><Data ss:Type="Number">${xlNum(row.value)}</Data></Cell>`
       : row.type === 'pct'
         ? (row.value === null
-          ? `<Cell ss:StyleID="value"><Data ss:Type="String">Ошибка расчёта</Data></Cell>`
+          ? `<Cell ss:StyleID="value"><Data ss:Type="String">${escapeXml(t('excel_errCalc'))}</Data></Cell>`
           : `<Cell ss:StyleID="pctResult"><Data ss:Type="Number">${xlNum(row.value)}</Data></Cell>`)
         : `<Cell ss:StyleID="value"><Data ss:Type="String">${escapeXml(row.value)}</Data></Cell>`;
     return `<Cell ss:StyleID="label"><Data ss:Type="String">${escapeXml(row.label)}</Data></Cell>${valueCell}`;
@@ -1543,23 +1882,23 @@ function exportExcel() {
   const totalPaymentSum = rows.reduce((s, r) => s + r.totalPayment, 0);
   const totalInterestSum = rows.reduce((s, r) => s + r.totalInterest, 0);
   const tiles = [
-    { label: 'Общий платёж', value: totalPaymentSum, style: 'green' },
-    { label: 'Погашение ОД', value: checks.sumPrincipal, style: 'blue' },
-    { label: 'Начисленные проценты', value: totalInterestSum, style: 'orange' },
-    { label: 'Количество платежей', value: rows.length, style: 'gray', isInt: true },
+    { label: t('excel_tileTotalPayment'), value: totalPaymentSum, style: 'green' },
+    { label: t('excel_tilePrincipal'), value: checks.sumPrincipal, style: 'blue' },
+    { label: t('excel_tileInterest'), value: totalInterestSum, style: 'orange' },
+    { label: t('excel_tileCount'), value: rows.length, style: 'gray', isInt: true },
   ];
-  const tileLabelCell = (t) => `<Cell ss:StyleID="tileLabel${t.style}"><Data ss:Type="String">${escapeXml(t.label)}</Data></Cell>`;
-  const tileValueCell = (t) => `<Cell ss:StyleID="tileValue${t.style}"><Data ss:Type="Number">${t.isInt ? t.value : xlNum(t.value)}</Data></Cell>`;
+  const tileLabelCell = (tile) => `<Cell ss:StyleID="tileLabel${tile.style}"><Data ss:Type="String">${escapeXml(tile.label)}</Data></Cell>`;
+  const tileValueCell = (tile) => `<Cell ss:StyleID="tileValue${tile.style}"><Data ss:Type="Number">${tile.isInt ? tile.value : xlNum(tile.value)}</Data></Cell>`;
 
   const infoRowCount = Math.max(leftRows.length, midRows.length);
   const infoXmlRows = [];
   // Заголовки трёх блоков в одной строке
   infoXmlRows.push('<Row ss:Height="22">'
-    + '<Cell ss:StyleID="panelTitle" ss:MergeAcross="1"><Data ss:Type="String">ПАРАМЕТРЫ КРЕДИТА</Data></Cell>'
+    + `<Cell ss:StyleID="panelTitle" ss:MergeAcross="1"><Data ss:Type="String">${escapeXml(t('excel_paramsTitle'))}</Data></Cell>`
     + '<Cell/>'
-    + '<Cell ss:StyleID="panelTitle" ss:MergeAcross="1"><Data ss:Type="String">РЕЗУЛЬТАТЫ РАСЧЁТА</Data></Cell>'
+    + `<Cell ss:StyleID="panelTitle" ss:MergeAcross="1"><Data ss:Type="String">${escapeXml(t('excel_resultsTitle'))}</Data></Cell>`
     + '<Cell/>'
-    + '<Cell ss:StyleID="panelTitleLight" ss:MergeAcross="3"><Data ss:Type="String">ГРАФИК ПЛАТЕЖЕЙ</Data></Cell>'
+    + `<Cell ss:StyleID="panelTitleLight" ss:MergeAcross="3"><Data ss:Type="String">${escapeXml(t('excel_scheduleTitle'))}</Data></Cell>`
     + '</Row>');
   for (let i = 0; i < infoRowCount; i++) {
     const tileRowCells = i === 0 ? tiles.map(tileLabelCell).join('')
@@ -1572,15 +1911,15 @@ function exportExcel() {
   const headerRowNum = infoRowCount + 3; // 1 (заголовки блоков) + infoRowCount + 1 (пустая строка) + 1
 
   // ---- Заголовок таблицы графика ----
-  const headers = ['№ платежа','Дата','Остаток на начало',
-    'Погашение ОД','Начислено %','% к уплате (итого)','Начисленные проценты за ЛП','Распределение процентов за ЛП',
-    'Итоговый платёж','Остаток на конец'];
+  const headers = [t('excel_colNum'), t('excel_colDate'), t('excel_colBalanceStart'),
+    t('excel_colPrincipal'), t('excel_colAccrued'), t('excel_colTotalPct'), t('excel_colAccruedLp'), t('excel_colDistLp'),
+    t('excel_colTotalPayment'), t('excel_colBalanceEnd')];
   const headerRow = `<Row>${headers.map(h => `<Cell ss:StyleID="header"><Data ss:Type="String">${escapeXml(h)}</Data></Cell>`).join('')}</Row>`;
 
   // ---- Строка выдачи (t=0), перед первым месяцем графика ----
   const d = lastResult.disbursement;
   const disbursementRow = '<Row>'
-    + strCell('Выдача', 'plain')
+    + strCell(t('excel_disbursement'), 'plain')
     + strCell(formatDateRu(d.date), 'plain')
     + dashCell('plain') + dashCell('plain') + dashCell('plain') + dashCell('plain') + dashCell('plain') + dashCell('plain')
     + numCell(-d.netAmount, 'num')
@@ -1592,7 +1931,7 @@ function exportExcel() {
     const band = !grace && idx % 2 === 1;
     const plainStyle = grace ? 'gracePlain' : (band ? 'plainBand' : 'plain');
     const numStyle = grace ? 'graceNum' : (band ? 'numBand' : 'num');
-    const dateStr = formatDateRu(r.date) + (r.adjusted ? ' (перенесена)' : '');
+    const dateStr = formatDateRu(r.date) + (r.adjusted ? t('excel_adjustedSuffix') : '');
     return '<Row>' + [
       intCell(r.i, plainStyle),
       strCell(dateStr, plainStyle),
@@ -1613,7 +1952,7 @@ function exportExcel() {
   const sumPoolAdd = rows.reduce((s, r) => s + r.poolAdd, 0);
   const sumDistribution = rows.reduce((s, r) => s + r.distribution, 0);
   const totalRow = '<Row>'
-    + '<Cell ss:StyleID="totalLabel" ss:MergeAcross="1"><Data ss:Type="String">ИТОГО</Data></Cell>'
+    + `<Cell ss:StyleID="totalLabel" ss:MergeAcross="1"><Data ss:Type="String">${escapeXml(t('excel_total'))}</Data></Cell>`
     + dashCell('totalStr')
     + numCell(sumPrincipalAll, 'totalNum')
     + numCell(sumInterestAccrued, 'totalNum')
@@ -1663,7 +2002,7 @@ function exportExcel() {
     + `<Style ss:ID="totalStr"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#0B2A4A" ss:Pattern="Solid"/>${border}</Style>\r\n`
     + `<Style ss:ID="totalNum"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#0B2A4A" ss:Pattern="Solid"/><NumberFormat ss:Format="#,##0.00"/>${border}</Style>\r\n`
     + '</Styles>\r\n'
-    + '<Worksheet ss:Name="График"><Table>\r\n'
+    + `<Worksheet ss:Name="${escapeXml(t('excel_sheetName'))}"><Table>\r\n`
     + columns + '\r\n'
     + infoXml + '\r\n' + headerRow + '\r\n' + disbursementRow + '\r\n' + bodyRows + '\r\n' + totalRow
     + '\r\n</Table>\r\n'
@@ -1691,6 +2030,10 @@ function attachRateToggle(checkboxId, contentId) {
 }
 
 function init() {
+  applyI18n();
+  document.getElementById('btn-lang-ru').addEventListener('click', () => setLanguage('ru'));
+  document.getElementById('btn-lang-kk').addEventListener('click', () => setLanguage('kk'));
+
   document.getElementById('f-issue-date').value = toDateInputValue(new Date());
   document.getElementById('f-payment-day').value = new Date().getDate();
   attachThousandsFormatting(document.getElementById('f-amount'));
