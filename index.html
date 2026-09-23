@@ -553,6 +553,12 @@
               <tbody id="grace-tbody"></tbody>
             </table>
           </div>
+          <div class="inline-field">
+            <label for="f-pool-spread-months">Распределить % за ЛП на, мес.</label>
+            <input type="number" id="f-pool-spread-months" min="1" step="1" placeholder="—">
+            <button class="btn-secondary" id="btn-apply-pool-spread" type="button">Применить</button>
+          </div>
+          <div class="field-note">После «Рассчитать» укажите число месяцев и нажмите «Применить»: проценты, накопленные за каждый льготный период (ЛП) в графике, равномерно распределятся на указанное число месяцев после него — подставится в «Вес % (ручн.)», способ распределения переключится на «Ручное распределение».</div>
           <div class="btn-row">
             <button class="btn-secondary" id="btn-reset-grace" type="button">Сбросить</button>
           </div>
@@ -1175,6 +1181,51 @@ function resetAllGrace() {
   renderSeasonalGraceTable();
 }
 
+// «Распределить % за ЛП на, мес.»: для каждого льготного периода (ЛП) по %
+// в последнем расчёте берёт накопленный к его концу пул и равномерно
+// распределяет на N следующих не-льготных due-дат по %, подставляя суммы в
+// «Вес % (ручн.)». Действует сразу на весь график (все ЛП), по последнему
+// расчёту (lastResult) — при изменении графика нужно нажать «Применить» снова.
+function applyPoolSpreadAll(months) {
+  if (!lastResult) {
+    showError('Сначала нажмите «Рассчитать» — распределение считается от текущего графика.');
+    return;
+  }
+  const rows = lastResult.rows;
+  let pendingBase = null;
+  let applied = false;
+  for (let j = 0; j < rows.length && j < monthsState.length; j++) {
+    const r = rows[j];
+    if (r.gracePct) {
+      pendingBase = r.poolEnd;
+      continue;
+    }
+    if (pendingBase !== null && r.duePct) {
+      const share = pendingBase / months;
+      let filled = 0;
+      for (let k = j; k < rows.length && k < monthsState.length && filled < months; k++) {
+        const rk = rows[k];
+        if (rk.duePct && !rk.gracePct) {
+          monthsState[k].weight = share;
+          filled++;
+        }
+      }
+      applied = true;
+      pendingBase = null;
+    }
+  }
+  if (!applied) {
+    showError('В графике нет льготных периодов по % — распределять нечего.');
+    return;
+  }
+  renderGraceTable();
+  const poolSelect = document.getElementById('f-pool-method');
+  if (poolSelect.value !== 'manual') {
+    poolSelect.value = 'manual';
+    poolSelect.dispatchEvent(new Event('change'));
+  }
+}
+
 const SHORT_MONTH_NAMES = ['янв', 'февр', 'март', 'апр', 'май', 'июн', 'июл', 'авг', 'сент', 'окт', 'нояб', 'дек'];
 
 // Подпись месяца строки таблицы льгот — фактические месяц и год этого платежа
@@ -1703,6 +1754,10 @@ function init() {
   document.getElementById('btn-export').addEventListener('click', exportExcel);
   document.getElementById('btn-reset-grace').addEventListener('click', resetAllGrace);
   document.getElementById('btn-reset-seasonal-grace').addEventListener('click', resetAllGrace);
+  document.getElementById('btn-apply-pool-spread').addEventListener('click', () => {
+    const months = parseInt(document.getElementById('f-pool-spread-months').value, 10);
+    if (Number.isFinite(months) && months > 0) applyPoolSpreadAll(months);
+  });
 }
 
 init();
