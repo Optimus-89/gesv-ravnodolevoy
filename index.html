@@ -751,6 +751,7 @@ const I18N = {
     err_baseDays: 'База расчёта дней в году должна быть больше нуля.',
     err_paymentDay: 'День платежа должен быть от 1 до 31.',
     err_firstPaymentDate: 'Дата первого платежа должна быть позже даты выдачи.',
+    err_firstPaymentAfterEnd: 'Дата первого платежа должна быть раньше даты окончания кредита.',
     err_fees: 'Комиссии не могут быть отрицательными.',
     err_rate2: 'Вторая ставка не может быть отрицательной.',
     err_rate3: 'Третья ставка не может быть отрицательной.',
@@ -906,6 +907,7 @@ const I18N = {
     err_baseDays: 'Жылдағы күндер есебінің базасы нөлден үлкен болуы керек.',
     err_paymentDay: 'Төлем күні 1-ден 31-ге дейін болуы керек.',
     err_firstPaymentDate: 'Алғашқы төлем күні берілген күннен кейін болуы керек.',
+    err_firstPaymentAfterEnd: 'Алғашқы төлем күні кредиттің аяқталу күнінен бұрын болуы керек.',
     err_fees: 'Комиссиялар теріс бола алмайды.',
     err_rate2: 'Екінші мөлшерлеме теріс бола алмайды.',
     err_rate3: 'Үшінші мөлшерлеме теріс бола алмайды.',
@@ -1259,6 +1261,7 @@ function validateInputs(p) {
   if (!(p.baseDays > 0)) return t('err_baseDays');
   if (p.paymentDay !== null && (!Number.isInteger(p.paymentDay) || p.paymentDay < 1 || p.paymentDay > 31)) return t('err_paymentDay');
   if (p.firstPaymentDate && p.firstPaymentDate <= p.issueDate) return t('err_firstPaymentDate');
+  if (p.firstPaymentDate && p.firstPaymentDate >= (p.endDate || addMonthsClamped(p.issueDate, p.termMonths))) return t('err_firstPaymentAfterEnd');
   if (!(p.feePct >= 0) || !(p.feeFix >= 0)) return t('err_fees');
   if (!(p.rate2Pct >= 0)) return t('err_rate2');
   if (!(p.rate3Pct >= 0)) return t('err_rate3');
@@ -1338,39 +1341,50 @@ function generateSchedule(p) {
   const maxYear = p.issueDate.getFullYear() + Math.ceil(N / 12) + 2;
   const calendar = buildCalendar(minYear, maxYear);
 
-  // Даты месяцев 0..N-1 (0 = дата выдачи, не переносится согласно 6.5). Первый
-  // платёж (i=1) берётся из поля «Дата первого платежа», если оно заполнено —
-  // это поле по умолчанию синхронизируется с датой выдачи/днём платежа, но
-  // пользователь может задать его вручную. Остальные месяцы — по «Дню платежа».
+  // Даты платежей: первый платёж — «Дата первого платежа» (по умолчанию
+  // выдача + 1 мес. по «Дню платежа», но можно задать вручную), далее платежи
+  // идут ежемесячно ОТ ЭТОЙ ДАТЫ по «Дню платежа» (месяц не пропускается),
+  // а последний платёж — всегда на дату окончания кредита. Число платежей M
+  // равно числу месяцев от первого платежа до месяца окончания: при первом
+  // платеже в обычном месяце (выдача + 1) M = N, при более раннем/позднем
+  // первом платеже на один платёж больше/меньше.
+  const trueEndRaw = p.endDate || addMonthsClamped(p.issueDate, N);
+  const monthIdx = (d) => d.getFullYear() * 12 + d.getMonth();
+  const firstRaw = p.firstPaymentDate || addMonthsClamped(p.issueDate, 1, p.paymentDay);
+  const regularCount = Math.max(0, monthIdx(trueEndRaw) - monthIdx(firstRaw));
+  const cadenceDay = p.paymentDay || firstRaw.getDate();
+
   const monthDates = [p.issueDate];
   const wasAdjusted = [false];
-  for (let i = 1; i < N; i++) {
-    const raw = (i === 1 && p.firstPaymentDate) ? p.firstPaymentDate : addMonthsClamped(p.issueDate, i, p.paymentDay);
+  for (let k = 0; k < regularCount; k++) {
+    const raw = k === 0 ? firstRaw : addMonthsClamped(firstRaw, k, cadenceDay);
     const adj = nextWorkday(raw, calendar.isNonWorking);
     monthDates.push(adj);
     wasAdjusted.push(adj.getTime() !== raw.getTime());
   }
 
   // Дата окончания кредита — фактическая дата погашения по сроку, не зависит
-  // от «Дня платежа» (см. поле «Дата окончания кредита») и не сдвигается сама
-  // по себе, каким бы ни был разрыв с предыдущим платежом.
-  const trueEndRaw = p.endDate || addMonthsClamped(p.issueDate, N);
+  // от «Дня платежа» (см. поле «Дата окончания кредита»).
   const trueEndAdj = nextWorkday(trueEndRaw, calendar.isNonWorking);
   monthDates.push(trueEndAdj);
   wasAdjusted.push(trueEndAdj.getTime() !== trueEndRaw.getTime());
 
-  const intervalOD = resolveInterval(p.odPeriodicity, N);
-  const intervalPct = resolveInterval(p.pctPeriodicity, N);
+  const M = monthDates.length - 1;
+
+  const intervalOD = resolveInterval(p.odPeriodicity, M);
+  const intervalPct = resolveInterval(p.pctPeriodicity, M);
 
   const dueOD = [false], duePct = [false];
-  for (let i = 1; i <= N; i++) {
-    dueOD.push(i % intervalOD === 0 || i === N);
-    duePct.push(i % intervalPct === 0 || i === N);
+  for (let i = 1; i <= M; i++) {
+    dueOD.push(i % intervalOD === 0 || i === M);
+    duePct.push(i % intervalPct === 0 || i === M);
   }
 
+  // Льготы/веса настраиваются по строкам таблицы «Льготы по месяцам»; для
+  // платежей сверх её длины (если платежей больше срока) льгот нет.
   const graceOD = [false], gracePct = [false], weight = [0], weightOD = [0];
-  for (let i = 1; i <= N; i++) {
-    const m = p.months[i - 1];
+  for (let i = 1; i <= M; i++) {
+    const m = p.months[i - 1] || {};
     graceOD.push(!!m.graceOD);
     gracePct.push(!!m.gracePct);
     weight.push(Number(m.weight) || 0);
@@ -1378,12 +1392,12 @@ function generateSchedule(p) {
   }
 
   // Суффиксные суммы: сколько ещё не-льготных due-дат осталось, включая текущую
-  const remainingOD = new Array(N + 2).fill(0);
-  const remainingPct = new Array(N + 2).fill(0);
+  const remainingOD = new Array(M + 2).fill(0);
+  const remainingPct = new Array(M + 2).fill(0);
   // Тот же суффикс, но "обнуляется" на льготном месяце — даёт количество платежей
   // от текущей даты до начала следующего льготного периода по % (не считая его).
-  const remainingPctLocal = new Array(N + 2).fill(0);
-  for (let i = N; i >= 1; i--) {
+  const remainingPctLocal = new Array(M + 2).fill(0);
+  for (let i = M; i >= 1; i--) {
     remainingOD[i] = remainingOD[i + 1] + ((dueOD[i] && !graceOD[i]) ? 1 : 0);
     remainingPct[i] = remainingPct[i + 1] + ((duePct[i] && !gracePct[i]) ? 1 : 0);
     remainingPctLocal[i] = gracePct[i] ? 0 : (duePct[i] ? 1 : 0) + remainingPctLocal[i + 1];
@@ -1442,7 +1456,7 @@ function generateSchedule(p) {
     const simulateFinalBalance = (X) => {
       let bal = startBalance;
       const state = { pool: poolAtStart };
-      for (let j = startIndex; j <= N; j++) {
+      for (let j = startIndex; j <= M; j++) {
         const { totalInterest } = stepInterest(state, j, bal);
         if (dueOD[j] && !graceOD[j]) bal -= (X - totalInterest);
       }
@@ -1468,7 +1482,7 @@ function generateSchedule(p) {
   const state = { pool: 0 };
   let annuityX = 0, needsResolve = true;
 
-  for (let i = 1; i <= N; i++) {
+  for (let i = 1; i <= M; i++) {
     const balanceStart = balance;
 
     // Резолвим аннуитетный платёж до начисления процентов этого периода — по
@@ -1668,14 +1682,20 @@ function applyPoolSpreadAll(months) {
 // Подпись месяца строки таблицы льгот — фактические месяц и год этого платежа
 // по текущим дате выдачи/дате первого платежа/дню платежа (та же логика дат,
 // что и в самом графике). Если дата выдачи не задана — просто номер месяца.
-function graceMonthLabel(idx) {
+// Дата idx-го платежа (с 0) по той же цепочке, что и в графике: первый платёж
+// — «Дата первого платежа», далее ежемесячно от неё по «Дню платежа».
+function paymentCadenceDate(idx) {
   const issueDate = parseDateField('f-issue-date');
-  if (!issueDate) return String(idx + 1);
+  if (!issueDate) return null;
   const paymentDayVal = document.getElementById('f-payment-day').value;
   const paymentDay = paymentDayVal ? parseInt(paymentDayVal, 10) : null;
-  const d = idx === 0
-    ? (parseDateField('f-first-payment-date') || addMonthsClamped(issueDate, 1, paymentDay))
-    : addMonthsClamped(issueDate, idx + 1, paymentDay);
+  const first = parseDateField('f-first-payment-date') || addMonthsClamped(issueDate, 1, paymentDay);
+  return idx === 0 ? first : addMonthsClamped(first, idx, paymentDay || first.getDate());
+}
+
+function graceMonthLabel(idx) {
+  const d = paymentCadenceDate(idx);
+  if (!d) return String(idx + 1);
   return `${MONTHS_SHORT[currentLang][d.getMonth()]} ${String(d.getFullYear()).slice(-2)}`;
 }
 
@@ -1719,14 +1739,10 @@ function renderGraceTable() {
 // клика; дальнейшая правка конкретных месяцев в таблице выше не откатывается
 // автоматически, если потом снова щёлкнуть по этому чекбоксу.
 function applySeasonalGrace(calendarMonth, field, checked) {
-  const issueDate = parseDateField('f-issue-date');
-  if (!issueDate) return;
-  const paymentDayVal = document.getElementById('f-payment-day').value;
-  const paymentDay = paymentDayVal ? parseInt(paymentDayVal, 10) : null;
+  if (!paymentCadenceDate(0)) return;
   const graceField = field === 'od' ? 'graceOD' : 'gracePct';
   monthsState.forEach((m, idx) => {
-    const raw = addMonthsClamped(issueDate, idx + 1, paymentDay);
-    if (raw.getMonth() === calendarMonth) m[graceField] = checked;
+    if (paymentCadenceDate(idx).getMonth() === calendarMonth) m[graceField] = checked;
   });
   renderGraceTable();
 }
