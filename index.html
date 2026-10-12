@@ -519,6 +519,34 @@
         </div>
       </details>
     </div>
+
+    <div class="panel">
+      <details class="accordion">
+        <summary data-i18n="subsidyHeading">Субсидирование ставки</summary>
+        <div class="accordion-body">
+          <fieldset>
+            <legend class="legend-toggle">
+              <label><input type="checkbox" id="f-subsidy-enabled"> <span data-i18n="subsidyEnabled">Субсидирование по проценту</span></label>
+            </legend>
+            <div class="rate-block-content" id="f-subsidy-content">
+              <label for="f-subsidy-pct" data-i18n="subsidyPctLabel">Ставка субсидирования, % годовых</label>
+              <input type="number" id="f-subsidy-pct" value="0" min="0" step="0.1">
+              <div class="field-row">
+                <div>
+                  <label for="f-subsidy-start" data-i18n="subsidyStartLabel">Дата начала субсидирования</label>
+                  <input type="date" id="f-subsidy-start">
+                </div>
+                <div>
+                  <label for="f-subsidy-end" data-i18n="subsidyEndLabel">Дата окончания субсидирования</label>
+                  <input type="date" id="f-subsidy-end">
+                </div>
+              </div>
+              <div class="field-note" data-i18n="subsidyNote">В период субсидирования заёмщик платит проценты по ставке «основная ставка − ставка субсидирования» (не ниже 0), вне периода — по полной ставке. Если дата начала не указана — с даты выдачи, если дата окончания не указана — до конца кредита.</div>
+            </div>
+          </fieldset>
+        </div>
+      </details>
+    </div>
   </div>
 
   <!-- RIGHT COLUMN -->
@@ -665,6 +693,17 @@ const I18N = {
     rate3DateLabel: 'Дата третьей ставки',
     rate3PctLabel: 'Третья ставка, % годовых',
     rate3Note: 'Работает так же, как вторая ставка: начиная с указанной даты третья ставка <b>заменяет</b> ту, что действовала до неё (основную или вторую). Проценты внутри периода переключения считаются раздельно по дням.',
+    subsidyHeading: 'Субсидирование ставки',
+    subsidyEnabled: 'Субсидирование по проценту',
+    subsidyPctLabel: 'Ставка субсидирования, % годовых',
+    subsidyStartLabel: 'Дата начала субсидирования',
+    subsidyEndLabel: 'Дата окончания субсидирования',
+    subsidyNote: 'В период субсидирования заёмщик платит проценты по ставке «основная ставка − ставка субсидирования» (не ниже 0), вне периода — по полной ставке. Если дата начала не указана — с даты выдачи, если дата окончания не указана — до конца кредита.',
+    err_subsidy: 'Ставка субсидирования не может быть отрицательной.',
+    err_subsidyDates: 'Дата окончания субсидирования должна быть позже даты начала.',
+    excel_subsidyLabel: 'Ставка субсидирования, % годовых',
+    excel_subsidyStartLabel: 'Дата начала субсидирования',
+    excel_subsidyEndLabel: 'Дата окончания субсидирования',
     gesvLabel: 'Годовая эффективная ставка вознаграждения (ГЭСВ)',
     checksHeading: 'Проверочные показатели',
     tilePrincipal: 'Погашено ОД',
@@ -805,6 +844,17 @@ const I18N = {
     rate3DateLabel: 'Үшінші мөлшерлеме күні',
     rate3PctLabel: 'Үшінші мөлшерлеме, жылдық %',
     rate3Note: 'Екінші мөлшерлеме сияқты жұмыс істейді: көрсетілген күннен бастап үшінші мөлшерлеме бұған дейін қолданыста болған мөлшерлемені (негізгісін немесе екіншісін) <b>алмастырады</b>. Ауысу кезеңі ішінде сыйақы күндер бойынша бөлек есептеледі.',
+    subsidyHeading: 'Мөлшерлемені субсидиялау',
+    subsidyEnabled: 'Сыйақыны субсидиялау',
+    subsidyPctLabel: 'Субсидиялау мөлшерлемесі, жылдық %',
+    subsidyStartLabel: 'Субсидиялаудың басталу күні',
+    subsidyEndLabel: 'Субсидиялаудың аяқталу күні',
+    subsidyNote: 'Субсидиялау кезеңінде қарыз алушы «негізгі мөлшерлеме − субсидиялау мөлшерлемесі» бойынша (0-ден төмен емес), кезеңнен тыс — толық мөлшерлеме бойынша сыйақы төлейді. Басталу күні көрсетілмесе — берілген күннен, аяқталу күні көрсетілмесе — кредит соңына дейін.',
+    err_subsidy: 'Субсидиялау мөлшерлемесі теріс бола алмайды.',
+    err_subsidyDates: 'Субсидиялаудың аяқталу күні басталу күнінен кейін болуы керек.',
+    excel_subsidyLabel: 'Субсидиялау мөлшерлемесі, жылдық %',
+    excel_subsidyStartLabel: 'Субсидиялаудың басталу күні',
+    excel_subsidyEndLabel: 'Субсидиялаудың аяқталу күні',
     gesvLabel: 'Сыйақының жылдық тиімді мөлшерлемесі (СЖТМ)',
     checksHeading: 'Тексеру көрсеткіштері',
     tilePrincipal: 'Өтелген НБ',
@@ -1196,6 +1246,8 @@ function validateInputs(p) {
   if (!(p.feePct >= 0) || !(p.feeFix >= 0)) return t('err_fees');
   if (!(p.rate2Pct >= 0)) return t('err_rate2');
   if (!(p.rate3Pct >= 0)) return t('err_rate3');
+  if (!(p.subsidyPct >= 0)) return t('err_subsidy');
+  if (p.subsidyStart && p.subsidyEnd && p.subsidyEnd <= p.subsidyStart) return t('err_subsidyDates');
   for (const m of p.months) {
     if (!(m.weight >= 0)) return t('err_weightPct');
     if (!(m.weightOD >= 0)) return t('err_weightOd');
@@ -1235,9 +1287,20 @@ function generateSchedule(p) {
 
   // Начисленные проценты за период, раздельно по дням для каждого отрезка между
   // точками переключения ставки, попадающими внутрь периода.
+  // Субсидирование: в окне [subsidyStart, subsidyEnd) заёмщик платит ставку
+  // на subsidyPct п.п. ниже действующей (не ниже 0). Границы окна — такие же
+  // точки разбиения периода, как и даты переключения ставки.
+  const subsidy = (p.subsidyPct || 0) / 100;
+  const subsidyActiveAt = (date) => subsidy > 0
+    && (!p.subsidyStart || date >= p.subsidyStart)
+    && (!p.subsidyEnd || date < p.subsidyEnd);
+
   function accrueInterest(balanceStart, periodStart, periodEnd) {
     const boundaries = [periodStart];
     for (const s of rateSwitches) if (s.date && s.date > periodStart && s.date < periodEnd) boundaries.push(s.date);
+    if (subsidy > 0) {
+      for (const d of [p.subsidyStart, p.subsidyEnd]) if (d && d > periodStart && d < periodEnd) boundaries.push(d);
+    }
     boundaries.push(periodEnd);
     boundaries.sort((a, b) => a - b);
     let weighted = 0;
@@ -1245,7 +1308,8 @@ function generateSchedule(p) {
       const segStart = boundaries[k], segEnd = boundaries[k + 1];
       const days = dayCount(segStart, segEnd);
       if (days <= 0) continue;
-      weighted += rateActiveAt(segStart) * days;
+      const segRate = Math.max(0, rateActiveAt(segStart) - (subsidyActiveAt(segStart) ? subsidy : 0));
+      weighted += segRate * days;
     }
     return balanceStart / p.baseDays * weighted;
   }
@@ -1735,6 +1799,9 @@ function readParams() {
     rate2Pct: document.getElementById('f-rate2-enabled').checked ? (parseFloat(document.getElementById('f-rate2-pct').value) || 0) : 0,
     rate3Date: document.getElementById('f-rate3-enabled').checked ? parseDateField('f-rate3-date') : null,
     rate3Pct: document.getElementById('f-rate3-enabled').checked ? (parseFloat(document.getElementById('f-rate3-pct').value) || 0) : 0,
+    subsidyPct: document.getElementById('f-subsidy-enabled').checked ? (parseFloat(document.getElementById('f-subsidy-pct').value) || 0) : 0,
+    subsidyStart: document.getElementById('f-subsidy-enabled').checked ? parseDateField('f-subsidy-start') : null,
+    subsidyEnd: document.getElementById('f-subsidy-enabled').checked ? parseDateField('f-subsidy-end') : null,
     months: monthsState,
   };
 }
@@ -1847,6 +1914,11 @@ function exportExcel() {
   if (p.rate3Date && p.rate3Pct) {
     leftRows.push({ label: t('excel_rate3Label'), value: p.rate3Pct, type: 'num' });
     leftRows.push({ label: t('excel_rate3DateLabel'), value: formatDateRu(p.rate3Date), type: 'str' });
+  }
+  if (p.subsidyPct > 0) {
+    leftRows.push({ label: t('excel_subsidyLabel'), value: p.subsidyPct, type: 'num' });
+    if (p.subsidyStart) leftRows.push({ label: t('excel_subsidyStartLabel'), value: formatDateRu(p.subsidyStart), type: 'str' });
+    if (p.subsidyEnd) leftRows.push({ label: t('excel_subsidyEndLabel'), value: formatDateRu(p.subsidyEnd), type: 'str' });
   }
   leftRows.push({ label: t('excel_issueDateLabel'), value: formatDateRu(p.issueDate), type: 'str' });
   if (p.paymentDay) leftRows.push({ label: t('excel_paymentDayLabel'), value: p.paymentDay, type: 'num' });
@@ -2048,6 +2120,9 @@ function init() {
   attachMonthScroll(document.getElementById('f-rate3-date'));
   attachRateToggle('f-rate2-enabled', 'f-rate2-content');
   attachRateToggle('f-rate3-enabled', 'f-rate3-content');
+  attachRateToggle('f-subsidy-enabled', 'f-subsidy-content');
+  attachMonthScroll(document.getElementById('f-subsidy-start'));
+  attachMonthScroll(document.getElementById('f-subsidy-end'));
 
   rebuildGraceTable(12);
   renderSeasonalGraceTable();
