@@ -297,6 +297,10 @@
     line-height: 1.25;
   }
   .schedule-wrap table thead th:first-child { white-space: nowrap; }
+  /* Столбцы субсидирования видны только при включённой галочке в блоке субсидирования. */
+  #schedule-table .subsidy-col { display: none; }
+  #schedule-table.show-subsidy .subsidy-col { display: table-cell; }
+  #schedule-table.show-subsidy col.subsidy-col { display: table-column; }
   .adj-badge {
     display: inline-block;
     margin-left: 3px;
@@ -572,18 +576,22 @@
         <table id="schedule-table">
           <colgroup>
             <col style="width:34px"><col style="width:100px"><col style="width:100px">
-            <col style="width:90px"><col style="width:85px"><col style="width:90px"><col style="width:95px"><col style="width:100px">
+            <col style="width:90px"><col style="width:85px"><col style="width:90px">
+            <col class="subsidy-col" style="width:100px"><col class="subsidy-col" style="width:100px">
+            <col style="width:95px"><col style="width:100px">
             <col style="width:100px"><col style="width:100px">
           </colgroup>
           <thead>
             <tr>
               <th data-i18n="colNum">№</th><th data-i18n="colDate">Дата</th><th data-i18n="colBalanceStart">Остаток на начало</th>
-              <th data-i18n="colPrincipal">Погашение ОД</th><th data-i18n="colAccrued">Начислено %</th><th data-i18n="colTotalPct">% к уплате (итого)</th><th data-i18n="colAccruedLp">Начисленные проценты за ЛП</th><th data-i18n="colDistLp">Распределение процентов за ЛП</th>
+              <th data-i18n="colPrincipal">Погашение ОД</th><th data-i18n="colAccrued">Начислено %</th><th data-i18n="colTotalPct">% к уплате (итого)</th>
+              <th class="subsidy-col" data-i18n="colSubsidyPart">Субсидируемая часть %</th><th class="subsidy-col" data-i18n="colClientPart">Клиентская часть %</th>
+              <th data-i18n="colAccruedLp">Начисленные проценты за ЛП</th><th data-i18n="colDistLp">Распределение процентов за ЛП</th>
               <th data-i18n="colTotalPayment">Итоговый платёж</th><th data-i18n="colBalanceEnd">Остаток на конец</th>
             </tr>
           </thead>
           <tbody id="schedule-tbody">
-            <tr><td colspan="10" class="empty-hint" data-i18n="scheduleEmptyHint">Нажмите «Рассчитать», чтобы увидеть график</td></tr>
+            <tr><td colspan="12" class="empty-hint" data-i18n="scheduleEmptyHint">Нажмите «Рассчитать», чтобы увидеть график</td></tr>
           </tbody>
         </table>
       </div>
@@ -698,7 +706,11 @@ const I18N = {
     subsidyPctLabel: 'Ставка субсидирования, % годовых',
     subsidyStartLabel: 'Дата начала субсидирования',
     subsidyEndLabel: 'Дата окончания субсидирования',
-    subsidyNote: 'В период субсидирования заёмщик платит проценты по ставке «основная ставка − ставка субсидирования» (не ниже 0), вне периода — по полной ставке. Если дата начала не указана — с даты выдачи, если дата окончания не указана — до конца кредита.',
+    subsidyNote: 'Общая ставка действует до конца срока кредита и определяет проценты и график ОД. Субсидирование считается отдельно: в период субсидирования часть процентов по ставке субсидирования относится на субсидируемую часть, остальное — клиентская часть. Если дата начала не указана — с даты выдачи, если дата окончания не указана — до конца кредита. В графике появляются столбцы «Субсидируемая часть %» и «Клиентская часть %»; ГЭСВ считается по платежам клиента.',
+    colSubsidyPart: 'Субсидируемая часть %',
+    colClientPart: 'Клиентская часть %',
+    excel_colSubsidyPart: 'Субсидируемая часть %',
+    excel_colClientPart: 'Клиентская часть %',
     err_subsidy: 'Ставка субсидирования не может быть отрицательной.',
     err_subsidyDates: 'Дата окончания субсидирования должна быть позже даты начала.',
     excel_subsidyLabel: 'Ставка субсидирования, % годовых',
@@ -849,7 +861,11 @@ const I18N = {
     subsidyPctLabel: 'Субсидиялау мөлшерлемесі, жылдық %',
     subsidyStartLabel: 'Субсидиялаудың басталу күні',
     subsidyEndLabel: 'Субсидиялаудың аяқталу күні',
-    subsidyNote: 'Субсидиялау кезеңінде қарыз алушы «негізгі мөлшерлеме − субсидиялау мөлшерлемесі» бойынша (0-ден төмен емес), кезеңнен тыс — толық мөлшерлеме бойынша сыйақы төлейді. Басталу күні көрсетілмесе — берілген күннен, аяқталу күні көрсетілмесе — кредит соңына дейін.',
+    subsidyNote: 'Жалпы мөлшерлеме кредит мерзімінің соңына дейін әрекет етеді және сыйақыны мен НБ кестесін анықтайды. Субсидиялау бөлек есептеледі: субсидиялау кезеңінде субсидиялау мөлшерлемесі бойынша сыйақы бөлігі субсидияланатын бөлікке жатады, қалғаны — клиенттік бөлік. Басталу күні көрсетілмесе — берілген күннен, аяқталу күні көрсетілмесе — кредит соңына дейін. Кестеде «Субсидияланатын сыйақы бөлігі» және «Клиенттік сыйақы бөлігі» бағандары пайда болады; СЖТМ клиент төлемдері бойынша есептеледі.',
+    colSubsidyPart: 'Субсидияланатын сыйақы бөлігі',
+    colClientPart: 'Клиенттік сыйақы бөлігі',
+    excel_colSubsidyPart: 'Субсидияланатын сыйақы бөлігі',
+    excel_colClientPart: 'Клиенттік сыйақы бөлігі',
     err_subsidy: 'Субсидиялау мөлшерлемесі теріс бола алмайды.',
     err_subsidyDates: 'Субсидиялаудың аяқталу күні басталу күнінен кейін болуы керек.',
     excel_subsidyLabel: 'Субсидиялау мөлшерлемесі, жылдық %',
@@ -975,7 +991,7 @@ function setLanguage(lang) {
   renderGraceTable();
   renderSeasonalGraceTable();
   if (lastResult) renderResults(lastResult);
-  else document.getElementById('schedule-tbody').innerHTML = `<tr><td colspan="10" class="empty-hint">${t('scheduleEmptyHint')}</td></tr>`;
+  else document.getElementById('schedule-tbody').innerHTML = `<tr><td colspan="12" class="empty-hint">${t('scheduleEmptyHint')}</td></tr>`;
 }
 
 /* ===================== Дата: утилиты ===================== */
@@ -1287,9 +1303,11 @@ function generateSchedule(p) {
 
   // Начисленные проценты за период, раздельно по дням для каждого отрезка между
   // точками переключения ставки, попадающими внутрь периода.
-  // Субсидирование: в окне [subsidyStart, subsidyEnd) заёмщик платит ставку
-  // на subsidyPct п.п. ниже действующей (не ниже 0). Границы окна — такие же
-  // точки разбиения периода, как и даты переключения ставки.
+  // Общая ставка действует весь срок и определяет проценты и график ОД.
+  // Субсидирование считается отдельно: в окне [subsidyStart, subsidyEnd)
+  // субсидируемая часть процентов = остаток × min(ставка субсидирования,
+  // действующая ставка) × дни; клиентская часть = начисленные − субсидируемая.
+  // Границы окна — такие же точки разбиения периода, как даты переключения ставки.
   const subsidy = (p.subsidyPct || 0) / 100;
   const subsidyActiveAt = (date) => subsidy > 0
     && (!p.subsidyStart || date >= p.subsidyStart)
@@ -1303,15 +1321,16 @@ function generateSchedule(p) {
     }
     boundaries.push(periodEnd);
     boundaries.sort((a, b) => a - b);
-    let weighted = 0;
+    let weighted = 0, weightedSub = 0;
     for (let k = 0; k < boundaries.length - 1; k++) {
       const segStart = boundaries[k], segEnd = boundaries[k + 1];
       const days = dayCount(segStart, segEnd);
       if (days <= 0) continue;
-      const segRate = Math.max(0, rateActiveAt(segStart) - (subsidyActiveAt(segStart) ? subsidy : 0));
+      const segRate = rateActiveAt(segStart);
       weighted += segRate * days;
+      if (subsidyActiveAt(segStart)) weightedSub += Math.min(subsidy, segRate) * days;
     }
-    return balanceStart / p.baseDays * weighted;
+    return { full: balanceStart / p.baseDays * weighted, sub: balanceStart / p.baseDays * weightedSub };
   }
   const feePctFrac = p.feePct / 100;
 
@@ -1382,24 +1401,34 @@ function generateSchedule(p) {
   // льгота: с теми же 4 способами распределения, а не автоматической полной
   // выплатой при наступлении due-даты.
   function stepInterest(state, i, balanceStart) {
-    const interestAccrued = accrueInterest(balanceStart, monthDates[i - 1], monthDates[i]);
+    const acc = accrueInterest(balanceStart, monthDates[i - 1], monthDates[i]);
+    const interestAccrued = acc.full;
     const deferred = !duePct[i] || gracePct[i];
 
     const poolStart = state.pool;
+    const poolSubStart = state.poolSub || 0;
     const poolAdd = deferred ? interestAccrued : 0;
 
-    let interestPaid = 0, distribution = 0;
+    let interestPaid = 0, distribution = 0, paidSub = 0, distSub = 0;
     if (!deferred) {
       interestPaid = interestAccrued;
+      paidSub = acc.sub;
       if (p.poolMethod === 'nearest') distribution = poolStart;
       else if (p.poolMethod === 'all') distribution = remainingPct[i] > 0 ? poolStart / remainingPct[i] : 0;
       else if (p.poolMethod === 'untilNextGrace') distribution = remainingPctLocal[i] > 0 ? poolStart / remainingPctLocal[i] : 0;
       else if (p.poolMethod === 'manual') distribution = remainingPct[i] === 1 ? poolStart : Math.min(poolStart, weight[i]);
     }
+    // Субсидируемая доля пула распределяется пропорционально её доле в пуле.
+    if (distribution > 0 && poolStart > 0) distSub = distribution * poolSubStart / poolStart;
     const poolEnd = poolStart + poolAdd - distribution;
     state.pool = poolEnd;
+    state.poolSub = poolSubStart + (deferred ? acc.sub : 0) - distSub;
 
-    return { interestAccrued, interestPaid, poolAdd, distribution, poolEnd, totalInterest: interestPaid + distribution };
+    return {
+      interestAccrued, interestPaid, poolAdd, distribution, poolEnd,
+      totalInterest: interestPaid + distribution,
+      subsidyPart: paidSub + distSub,
+    };
   }
 
   // Аннуитет: подбираем константный платёж X (методом бисекции, как для ГЭСВ),
@@ -1449,7 +1478,8 @@ function generateSchedule(p) {
       needsResolve = false;
     }
 
-    const { interestAccrued, interestPaid, poolAdd, distribution, poolEnd, totalInterest } = stepInterest(state, i, balanceStart);
+    const { interestAccrued, interestPaid, poolAdd, distribution, poolEnd, totalInterest, subsidyPart } = stepInterest(state, i, balanceStart);
+    const clientPart = totalInterest - subsidyPart;
 
     // Вес ОД — сумма (не доля), направляемая на погашение в этом месяце (0 =
     // распределение остатка согласно типу графика: равными долями или
@@ -1482,8 +1512,8 @@ function generateSchedule(p) {
     rows.push({
       i, date: monthDates[i], adjusted: wasAdjusted[i],
       dueOD: dueOD[i], duePct: duePct[i], graceOD: graceOD[i], gracePct: gracePct[i],
-      balanceStart, principal, interestAccrued, totalInterest, poolAdd, distribution,
-      poolEnd, bucketEnd: 0, fee, totalPayment, balanceEnd,
+      balanceStart, principal, interestAccrued, totalInterest, subsidyPart, clientPart, poolAdd, distribution,
+      poolEnd, bucketEnd: 0, fee, totalPayment, clientPayment: principal + clientPart + fee, balanceEnd,
     });
 
     balance = balanceEnd;
@@ -1505,7 +1535,9 @@ function generateSchedule(p) {
 
   const feeAmount = p.amount * feePctFrac + p.feeFix;
   const cashflows = [{ date: p.issueDate, amount: -(p.amount - feeAmount) }];
-  for (const r of rows) cashflows.push({ date: r.date, amount: r.totalPayment });
+  // ГЭСВ — стоимость кредита для заёмщика: он платит ОД и только клиентскую
+  // часть процентов (субсидируемую часть платит субсидирующая сторона).
+  for (const r of rows) cashflows.push({ date: r.date, amount: r.clientPayment });
 
   const gesv = calcXIRR(cashflows);
 
@@ -1799,6 +1831,7 @@ function readParams() {
     rate2Pct: document.getElementById('f-rate2-enabled').checked ? (parseFloat(document.getElementById('f-rate2-pct').value) || 0) : 0,
     rate3Date: document.getElementById('f-rate3-enabled').checked ? parseDateField('f-rate3-date') : null,
     rate3Pct: document.getElementById('f-rate3-enabled').checked ? (parseFloat(document.getElementById('f-rate3-pct').value) || 0) : 0,
+    subsidyEnabled: document.getElementById('f-subsidy-enabled').checked,
     subsidyPct: document.getElementById('f-subsidy-enabled').checked ? (parseFloat(document.getElementById('f-subsidy-pct').value) || 0) : 0,
     subsidyStart: document.getElementById('f-subsidy-enabled').checked ? parseDateField('f-subsidy-start') : null,
     subsidyEnd: document.getElementById('f-subsidy-enabled').checked ? parseDateField('f-subsidy-end') : null,
@@ -1848,6 +1881,8 @@ function renderResults(result) {
       <td>${formatMoney(r.principal)}</td>
       <td>${formatMoney(r.interestAccrued)}</td>
       <td>${formatMoney(r.totalInterest)}</td>
+      <td class="subsidy-col">${formatMoney(r.subsidyPart)}</td>
+      <td class="subsidy-col">${formatMoney(r.clientPart)}</td>
       <td>${formatMoney(r.poolAdd)}</td>
       <td>${formatMoney(r.distribution)}</td>
       <td>${formatMoney(r.totalPayment)}</td>
@@ -1867,7 +1902,7 @@ function doCalculate() {
     document.getElementById('btn-export').disabled = true;
     document.getElementById('gesv-value').textContent = '—';
     document.querySelectorAll('.tile').forEach(tile => { tile.classList.remove('ok', 'bad'); tile.querySelector('.tile-value').textContent = '—'; });
-    document.getElementById('schedule-tbody').innerHTML = `<tr><td colspan="10" class="empty-hint">${t('scheduleEmptyHint')}</td></tr>`;
+    document.getElementById('schedule-tbody').innerHTML = `<tr><td colspan="12" class="empty-hint">${t('scheduleEmptyHint')}</td></tr>`;
     return;
   }
   result.params = params;
@@ -1983,8 +2018,12 @@ function exportExcel() {
   const headerRowNum = infoRowCount + 3; // 1 (заголовки блоков) + infoRowCount + 1 (пустая строка) + 1
 
   // ---- Заголовок таблицы графика ----
+  const showSubsidy = !!p.subsidyEnabled;
+  const colCount = showSubsidy ? 12 : 10;
   const headers = [t('excel_colNum'), t('excel_colDate'), t('excel_colBalanceStart'),
-    t('excel_colPrincipal'), t('excel_colAccrued'), t('excel_colTotalPct'), t('excel_colAccruedLp'), t('excel_colDistLp'),
+    t('excel_colPrincipal'), t('excel_colAccrued'), t('excel_colTotalPct'),
+    ...(showSubsidy ? [t('excel_colSubsidyPart'), t('excel_colClientPart')] : []),
+    t('excel_colAccruedLp'), t('excel_colDistLp'),
     t('excel_colTotalPayment'), t('excel_colBalanceEnd')];
   const headerRow = `<Row>${headers.map(h => `<Cell ss:StyleID="header"><Data ss:Type="String">${escapeXml(h)}</Data></Cell>`).join('')}</Row>`;
 
@@ -1994,6 +2033,7 @@ function exportExcel() {
     + strCell(t('excel_disbursement'), 'plain')
     + strCell(formatDateRu(d.date), 'plain')
     + dashCell('plain') + dashCell('plain') + dashCell('plain') + dashCell('plain') + dashCell('plain') + dashCell('plain')
+    + (showSubsidy ? dashCell('plain') + dashCell('plain') : '')
     + numCell(-d.netAmount, 'num')
     + numCell(p.amount, 'num')
     + '</Row>';
@@ -2011,6 +2051,7 @@ function exportExcel() {
       numCell(r.principal, numStyle),
       numCell(r.interestAccrued, numStyle),
       numCell(r.totalInterest, numStyle),
+      ...(showSubsidy ? [numCell(r.subsidyPart, numStyle), numCell(r.clientPart, numStyle)] : []),
       numCell(r.poolAdd, numStyle),
       numCell(r.distribution, numStyle),
       numCell(r.totalPayment, numStyle),
@@ -2029,6 +2070,9 @@ function exportExcel() {
     + numCell(sumPrincipalAll, 'totalNum')
     + numCell(sumInterestAccrued, 'totalNum')
     + numCell(totalInterestSum, 'totalNum')
+    + (showSubsidy
+      ? numCell(rows.reduce((s, r) => s + r.subsidyPart, 0), 'totalNum') + numCell(rows.reduce((s, r) => s + r.clientPart, 0), 'totalNum')
+      : '')
     + numCell(sumPoolAdd, 'totalNum')
     + numCell(sumDistribution, 'totalNum')
     + numCell(totalPaymentSum, 'totalNum')
@@ -2040,7 +2084,7 @@ function exportExcel() {
     + '<Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#DDE3E9"/>'
     + '<Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#DDE3E9"/></Borders>';
 
-  const columns = [230, 150, 85, 80, 75, 80, 80, 80, 85, 85]
+  const columns = (showSubsidy ? [230, 150, 85, 80, 75, 80, 90, 90, 80, 80, 85, 85] : [230, 150, 85, 80, 75, 80, 80, 80, 85, 85])
     .map(w => `<Column ss:Width="${w}"/>`).join('');
 
   const xml = '<?xml version="1.0" encoding="UTF-8"?>\r\n'
@@ -2079,7 +2123,7 @@ function exportExcel() {
     + infoXml + '\r\n' + headerRow + '\r\n' + disbursementRow + '\r\n' + bodyRows + '\r\n' + totalRow
     + '\r\n</Table>\r\n'
     + '<WorksheetOptions xmlns="urn:schemas-microsoft-com:office:excel"><DoNotDisplayGridlines/></WorksheetOptions>\r\n'
-    + `<AutoFilter x:Range="R${headerRowNum}C1:R${headerRowNum}C10" xmlns="urn:schemas-microsoft-com:office:excel"></AutoFilter>\r\n`
+    + `<AutoFilter x:Range="R${headerRowNum}C1:R${headerRowNum}C${colCount}" xmlns="urn:schemas-microsoft-com:office:excel"></AutoFilter>\r\n`
     + '</Worksheet>\r\n'
     + '</Workbook>';
 
@@ -2121,6 +2165,10 @@ function init() {
   attachRateToggle('f-rate2-enabled', 'f-rate2-content');
   attachRateToggle('f-rate3-enabled', 'f-rate3-content');
   attachRateToggle('f-subsidy-enabled', 'f-subsidy-content');
+  const syncSubsidyColumns = () => document.getElementById('schedule-table')
+    .classList.toggle('show-subsidy', document.getElementById('f-subsidy-enabled').checked);
+  document.getElementById('f-subsidy-enabled').addEventListener('change', syncSubsidyColumns);
+  syncSubsidyColumns();
   attachMonthScroll(document.getElementById('f-subsidy-start'));
   attachMonthScroll(document.getElementById('f-subsidy-end'));
 
