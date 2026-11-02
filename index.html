@@ -298,9 +298,9 @@
   }
   .schedule-wrap table thead th:first-child { white-space: nowrap; }
   /* Столбцы субсидирования видны только при включённой галочке в блоке субсидирования. */
-  #schedule-table .subsidy-col { display: none; }
-  #schedule-table.show-subsidy .subsidy-col { display: table-cell; }
-  #schedule-table.show-subsidy col.subsidy-col { display: table-column; }
+  #schedule-table .subsidy-col, #grace-table .subsidy-col { display: none; }
+  #schedule-table.show-subsidy .subsidy-col, #grace-table.show-subsidy .subsidy-col { display: table-cell; }
+  #schedule-table.show-subsidy col.subsidy-col, #grace-table.show-subsidy col.subsidy-col { display: table-column; }
   .adj-badge {
     display: inline-block;
     margin-left: 3px;
@@ -545,6 +545,14 @@
                   <input type="date" id="f-subsidy-end">
                 </div>
               </div>
+              <label for="f-pool-method-sub" data-i18n="poolMethodSubLabel">Способ распределения пула % (накоплено за льготу) — субсидируемая часть</label>
+              <select id="f-pool-method-sub">
+                <option value="nearest" selected data-i18n="poolNearest">Первый предстоящий платеж</option>
+                <option value="all" data-i18n="poolAll">Все предстоящие платежи</option>
+                <option value="untilNextGrace" data-i18n="poolUntilNextGrace">До следующего льготного периода</option>
+                <option value="manual" data-i18n="poolManual">Ручное распределение</option>
+              </select>
+              <div class="field-note" id="pool-note-manual-sub" style="display:none;" data-i18n="poolNoteManualSub">При ручном распределении суммы для субсидируемой части задаются в столбце «Вес % субсид. (ручн.)» таблицы «Льготы по месяцам».</div>
               <div class="field-note" data-i18n="subsidyNote">В период субсидирования заёмщик платит проценты по ставке «основная ставка − ставка субсидирования» (не ниже 0), вне периода — по полной ставке. Если дата начала не указана — с даты выдачи, если дата окончания не указана — до конца кредита.</div>
             </div>
           </fieldset>
@@ -603,12 +611,12 @@
         <summary data-i18n="graceMonthsHeading">Льготы по месяцам</summary>
         <div class="accordion-body">
           <div class="grace-table-wrap">
-            <table>
+            <table id="grace-table">
               <colgroup>
-                <col style="width:64px"><col style="width:64px"><col><col style="width:64px"><col>
+                <col style="width:64px"><col style="width:64px"><col><col style="width:64px"><col><col class="subsidy-col">
               </colgroup>
               <thead>
-                <tr><th data-i18n="monthShortColHeader">Мес.</th><th data-i18n="graceOdColHeader">Льгота ОД</th><th data-i18n="weightOdColHeader">Вес ОД (ручн.)</th><th data-i18n="gracePctColHeader">Льгота %</th><th data-i18n="weightPctColHeader">Вес % (ручн.)</th></tr>
+                <tr><th data-i18n="monthShortColHeader">Мес.</th><th data-i18n="graceOdColHeader">Льгота ОД</th><th data-i18n="weightOdColHeader">Вес ОД (ручн.)</th><th data-i18n="gracePctColHeader">Льгота %</th><th data-i18n="weightPctColHeader">Вес % (ручн.)</th><th class="subsidy-col" data-i18n="weightPctSubColHeader">Вес % субсид. (ручн.)</th></tr>
               </thead>
               <tbody id="grace-tbody"></tbody>
             </table>
@@ -707,6 +715,10 @@ const I18N = {
     subsidyStartLabel: 'Дата начала субсидирования',
     subsidyEndLabel: 'Дата окончания субсидирования',
     subsidyNote: 'Общая ставка действует до конца срока кредита и определяет проценты и график ОД. Субсидирование считается отдельно: в период субсидирования часть процентов по ставке субсидирования относится на субсидируемую часть, остальное — клиентская часть. Если дата начала не указана — с даты выдачи, если дата окончания не указана — до конца кредита. В графике появляются столбцы «Субсидируемая часть %» и «Клиентская часть %»; в расчёт ГЭСВ берётся общая часть процентов.',
+    poolMethodSubLabel: 'Способ распределения пула % (накоплено за льготу) — субсидируемая часть',
+    poolNoteManualSub: 'При ручном распределении суммы для субсидируемой части задаются в столбце «Вес % субсид. (ручн.)» таблицы «Льготы по месяцам».',
+    weightPctSubColHeader: 'Вес % субсид. (ручн.)',
+    excel_poolMethodSubLabel: 'Способ распределения пула % (субсидируемая часть)',
     colSubsidyPart: 'Субсидируемая часть %',
     colClientPart: 'Клиентская часть %',
     excel_colSubsidyPart: 'Субсидируемая часть %',
@@ -863,6 +875,10 @@ const I18N = {
     subsidyStartLabel: 'Субсидиялаудың басталу күні',
     subsidyEndLabel: 'Субсидиялаудың аяқталу күні',
     subsidyNote: 'Жалпы мөлшерлеме кредит мерзімінің соңына дейін әрекет етеді және сыйақыны мен НБ кестесін анықтайды. Субсидиялау бөлек есептеледі: субсидиялау кезеңінде субсидиялау мөлшерлемесі бойынша сыйақы бөлігі субсидияланатын бөлікке жатады, қалғаны — клиенттік бөлік. Басталу күні көрсетілмесе — берілген күннен, аяқталу күні көрсетілмесе — кредит соңына дейін. Кестеде «Субсидияланатын сыйақы бөлігі» және «Клиенттік сыйақы бөлігі» бағандары пайда болады; СЖТМ есебіне сыйақының жалпы бөлігі алынады.',
+    poolMethodSubLabel: '% пулын бөлу тәсілі (жеңілдік бойынша жинақталған) — субсидияланатын бөлік',
+    poolNoteManualSub: 'Қолмен бөлген кезде субсидияланатын бөлік сомалары «Айлар бойынша жеңілдіктер» кестесінің «Субсид. сыйақы салмағы (қолмен)» бағанында беріледі.',
+    weightPctSubColHeader: 'Субсид. сыйақы салмағы (қолмен)',
+    excel_poolMethodSubLabel: 'Сыйақы пулын бөлу тәсілі (субсидияланатын бөлік)',
     colSubsidyPart: 'Субсидияланатын сыйақы бөлігі',
     colClientPart: 'Клиенттік сыйақы бөлігі',
     excel_colSubsidyPart: 'Субсидияланатын сыйақы бөлігі',
@@ -1268,7 +1284,7 @@ function validateInputs(p) {
   if (!(p.subsidyPct >= 0)) return t('err_subsidy');
   if (p.subsidyStart && p.subsidyEnd && p.subsidyEnd <= p.subsidyStart) return t('err_subsidyDates');
   for (const m of p.months) {
-    if (!(m.weight >= 0)) return t('err_weightPct');
+    if (!(m.weight >= 0) || !(m.weightSub >= 0)) return t('err_weightPct');
     if (!(m.weightOD >= 0)) return t('err_weightOd');
   }
   return null;
@@ -1382,12 +1398,13 @@ function generateSchedule(p) {
 
   // Льготы/веса настраиваются по строкам таблицы «Льготы по месяцам»; для
   // платежей сверх её длины (если платежей больше срока) льгот нет.
-  const graceOD = [false], gracePct = [false], weight = [0], weightOD = [0];
+  const graceOD = [false], gracePct = [false], weight = [0], weightSub = [0], weightOD = [0];
   for (let i = 1; i <= M; i++) {
     const m = p.months[i - 1] || {};
     graceOD.push(!!m.graceOD);
     gracePct.push(!!m.gracePct);
     weight.push(Number(m.weight) || 0);
+    weightSub.push(Number(m.weightSub) || 0);
     weightOD.push(Number(m.weightOD) || 0);
   }
 
@@ -1423,17 +1440,24 @@ function generateSchedule(p) {
     const poolSubStart = state.poolSub || 0;
     const poolAdd = deferred ? interestAccrued : 0;
 
+    // Пул делится на две части со своими способами распределения: клиентская
+    // часть — по основному способу, субсидируемая — по способу из блока
+    // субсидирования (при выключенном субсидировании она нулевая).
+    const distributeBy = (method, pool, w) => {
+      if (method === 'nearest') return pool;
+      if (method === 'all') return remainingPct[i] > 0 ? pool / remainingPct[i] : 0;
+      if (method === 'untilNextGrace') return remainingPctLocal[i] > 0 ? pool / remainingPctLocal[i] : 0;
+      if (method === 'manual') return remainingPct[i] === 1 ? pool : Math.min(pool, w);
+      return 0;
+    };
     let interestPaid = 0, distribution = 0, paidSub = 0, distSub = 0;
     if (!deferred) {
       interestPaid = interestAccrued;
       paidSub = acc.sub;
-      if (p.poolMethod === 'nearest') distribution = poolStart;
-      else if (p.poolMethod === 'all') distribution = remainingPct[i] > 0 ? poolStart / remainingPct[i] : 0;
-      else if (p.poolMethod === 'untilNextGrace') distribution = remainingPctLocal[i] > 0 ? poolStart / remainingPctLocal[i] : 0;
-      else if (p.poolMethod === 'manual') distribution = remainingPct[i] === 1 ? poolStart : Math.min(poolStart, weight[i]);
+      const distClient = distributeBy(p.poolMethod, poolStart - poolSubStart, weight[i]);
+      distSub = distributeBy(p.poolMethodSub, poolSubStart, weightSub[i]);
+      distribution = distClient + distSub;
     }
-    // Субсидируемая доля пула распределяется пропорционально её доле в пуле.
-    if (distribution > 0 && poolStart > 0) distSub = distribution * poolSubStart / poolStart;
     const poolEnd = poolStart + poolAdd - distribution;
     state.pool = poolEnd;
     state.poolSub = poolSubStart + (deferred ? acc.sub : 0) - distSub;
@@ -1442,6 +1466,7 @@ function generateSchedule(p) {
       interestAccrued, interestPaid, poolAdd, distribution, poolEnd,
       totalInterest: interestPaid + distribution,
       subsidyPart: paidSub + distSub,
+      poolEndSub: state.poolSub,
     };
   }
 
@@ -1452,10 +1477,10 @@ function generateSchedule(p) {
   // несовпадающими датами ОД/% и по льготе %) — поэтому платёж остаётся
   // одинаковым по всему графику: и при разной периодичности ОД/%, и при
   // известной заранее льготе, и при смене ставки (2-я/3-я).
-  function solveAnnuityPayment(startBalance, startIndex, poolAtStart) {
+  function solveAnnuityPayment(startBalance, startIndex, poolAtStart, poolSubAtStart) {
     const simulateFinalBalance = (X) => {
       let bal = startBalance;
-      const state = { pool: poolAtStart };
+      const state = { pool: poolAtStart, poolSub: poolSubAtStart };
       for (let j = startIndex; j <= M; j++) {
         const { totalInterest } = stepInterest(state, j, bal);
         if (dueOD[j] && !graceOD[j]) bal -= (X - totalInterest);
@@ -1488,11 +1513,11 @@ function generateSchedule(p) {
     // Резолвим аннуитетный платёж до начисления процентов этого периода — по
     // состоянию пула на начало периода, как при реальном расчёте.
     if (p.method === 'annuity' && needsResolve && dueOD[i] && !graceOD[i] && remainingOD[i] > 1) {
-      annuityX = solveAnnuityPayment(balanceStart, i, state.pool);
+      annuityX = solveAnnuityPayment(balanceStart, i, state.pool, state.poolSub || 0);
       needsResolve = false;
     }
 
-    const { interestAccrued, interestPaid, poolAdd, distribution, poolEnd, totalInterest, subsidyPart } = stepInterest(state, i, balanceStart);
+    const { interestAccrued, interestPaid, poolAdd, distribution, poolEnd, totalInterest, subsidyPart, poolEndSub } = stepInterest(state, i, balanceStart);
     const clientPart = totalInterest - subsidyPart;
 
     // Вес ОД — сумма (не доля), направляемая на погашение в этом месяце (0 =
@@ -1527,7 +1552,7 @@ function generateSchedule(p) {
       i, date: monthDates[i], adjusted: wasAdjusted[i],
       dueOD: dueOD[i], duePct: duePct[i], graceOD: graceOD[i], gracePct: gracePct[i],
       balanceStart, principal, interestAccrued, totalInterest, subsidyPart, clientPart, poolAdd, distribution,
-      poolEnd, bucketEnd: 0, fee, totalPayment, balanceEnd,
+      poolEnd, poolEndSub, bucketEnd: 0, fee, totalPayment, balanceEnd,
     });
 
     balance = balanceEnd;
@@ -1569,7 +1594,7 @@ function rebuildGraceTable(term) {
   const old = monthsState;
   monthsState = [];
   for (let i = 0; i < term; i++) {
-    monthsState.push(old[i] ? old[i] : { graceOD: false, weightOD: 0, gracePct: false, weight: 0 });
+    monthsState.push(old[i] ? old[i] : { graceOD: false, weightOD: 0, gracePct: false, weight: 0, weightSub: 0 });
   }
   renderGraceTable();
 }
@@ -1629,7 +1654,7 @@ function syncFirstPaymentDateFromIssue() {
 // точка сброса и для таблицы "Льготы по месяцам", и для "Льготы по календарным
 // месяцам" (у второго блока нет собственного состояния, кроме тех же полей).
 function resetAllGrace() {
-  monthsState.forEach(m => { m.graceOD = false; m.weightOD = 0; m.gracePct = false; m.weight = 0; });
+  monthsState.forEach(m => { m.graceOD = false; m.weightOD = 0; m.gracePct = false; m.weight = 0; m.weightSub = 0; });
   renderGraceTable();
   renderSeasonalGraceTable();
 }
@@ -1645,21 +1670,25 @@ function applyPoolSpreadAll(months) {
     return;
   }
   const rows = lastResult.rows;
-  let pendingBase = null;
+  const subsidyOn = document.getElementById('f-subsidy-enabled').checked;
+  let pendingBase = null, pendingBaseSub = 0;
   let applied = false;
   for (let j = 0; j < rows.length && j < monthsState.length; j++) {
     const r = rows[j];
     if (r.gracePct) {
-      pendingBase = r.poolEnd;
+      pendingBaseSub = subsidyOn ? (r.poolEndSub || 0) : 0;
+      pendingBase = r.poolEnd - pendingBaseSub;
       continue;
     }
     if (pendingBase !== null && r.duePct) {
       const share = pendingBase / months;
+      const shareSub = pendingBaseSub / months;
       let filled = 0;
       for (let k = j; k < rows.length && k < monthsState.length && filled < months; k++) {
         const rk = rows[k];
         if (rk.duePct && !rk.gracePct) {
           monthsState[k].weight = share;
+          if (subsidyOn) monthsState[k].weightSub = shareSub;
           filled++;
         }
       }
@@ -1676,6 +1705,11 @@ function applyPoolSpreadAll(months) {
   if (poolSelect.value !== 'manual') {
     poolSelect.value = 'manual';
     poolSelect.dispatchEvent(new Event('change'));
+  }
+  const poolSelectSub = document.getElementById('f-pool-method-sub');
+  if (subsidyOn && poolSelectSub.value !== 'manual') {
+    poolSelectSub.value = 'manual';
+    poolSelectSub.dispatchEvent(new Event('change'));
   }
 }
 
@@ -1711,6 +1745,7 @@ function renderGraceTable() {
       <td><input type="text" inputmode="numeric" class="weight-input" data-idx="${idx}" data-field="weightOD" value="${(Number(m.weightOD) || 0).toLocaleString('ru-RU')}"></td>
       <td class="grace-cell"><input type="checkbox" data-idx="${idx}" data-field="gracePct" ${m.gracePct ? 'checked' : ''}></td>
       <td><input type="text" inputmode="numeric" class="weight-input" data-idx="${idx}" data-field="weight" value="${(Number(m.weight) || 0).toLocaleString('ru-RU')}"></td>
+      <td class="subsidy-col"><input type="text" inputmode="numeric" class="weight-input" data-idx="${idx}" data-field="weightSub" value="${(Number(m.weightSub) || 0).toLocaleString('ru-RU')}"></td>
     `;
     tbody.appendChild(tr);
   });
@@ -1731,6 +1766,7 @@ function renderGraceTable() {
   });
   tbody.querySelectorAll('input.weight-input[data-field="weightOD"]').forEach(attachWeightODInputBehavior);
   tbody.querySelectorAll('input.weight-input[data-field="weight"]').forEach(attachWeightODInputBehavior);
+  tbody.querySelectorAll('input.weight-input[data-field="weightSub"]').forEach(attachWeightODInputBehavior);
 }
 
 // Разово проставляет/снимает льготу (ОД или %) на всех месяцах графика, чьи
@@ -1841,6 +1877,7 @@ function readParams() {
     odPeriodicity,
     pctPeriodicity: document.getElementById('f-pct-period').value,
     poolMethod: document.getElementById('f-pool-method').value,
+    poolMethodSub: document.getElementById('f-pool-method-sub').value,
     feePct: parseThousands(document.getElementById('f-fee-pct').value),
     feeFix: parseThousands(document.getElementById('f-fee-fix').value),
     rate2Date: document.getElementById('f-rate2-enabled').checked ? parseDateField('f-rate2-date') : null,
@@ -1927,6 +1964,7 @@ function doCalculate() {
     odPeriodicity: document.getElementById('f-od-period').selectedOptions[0].textContent,
     pctPeriodicity: document.getElementById('f-pct-period').selectedOptions[0].textContent,
     poolMethod: document.getElementById('f-pool-method').selectedOptions[0].textContent,
+    poolMethodSub: document.getElementById('f-pool-method-sub').selectedOptions[0].textContent,
   };
   lastResult = result;
   document.getElementById('btn-export').disabled = false;
@@ -1979,6 +2017,7 @@ function exportExcel() {
   leftRows.push({ label: t('excel_odPeriodLabel'), value: labels.odPeriodicity, type: 'str' });
   leftRows.push({ label: t('excel_pctPeriodLabel'), value: labels.pctPeriodicity, type: 'str' });
   leftRows.push({ label: t('excel_poolMethodLabel'), value: labels.poolMethod, type: 'str' });
+  if (p.subsidyPct > 0) leftRows.push({ label: t('excel_poolMethodSubLabel'), value: labels.poolMethodSub, type: 'str' });
   leftRows.push({ label: t('excel_feePctLabel'), value: p.feePct, type: 'num' });
   leftRows.push({ label: t('excel_feeFixLabel'), value: p.feeFix, type: 'num' });
 
@@ -2181,8 +2220,13 @@ function init() {
   attachRateToggle('f-rate2-enabled', 'f-rate2-content');
   attachRateToggle('f-rate3-enabled', 'f-rate3-content');
   attachRateToggle('f-subsidy-enabled', 'f-subsidy-content');
-  const syncSubsidyColumns = () => document.getElementById('schedule-table')
-    .classList.toggle('show-subsidy', document.getElementById('f-subsidy-enabled').checked);
+  const syncSubsidyColumns = () => ['schedule-table', 'grace-table'].forEach(id => document.getElementById(id)
+    .classList.toggle('show-subsidy', document.getElementById('f-subsidy-enabled').checked));
+  const syncSubPoolNote = () => {
+    document.getElementById('pool-note-manual-sub').style.display = document.getElementById('f-pool-method-sub').value === 'manual' ? 'block' : 'none';
+  };
+  document.getElementById('f-pool-method-sub').addEventListener('change', syncSubPoolNote);
+  syncSubPoolNote();
   document.getElementById('f-subsidy-enabled').addEventListener('change', syncSubsidyColumns);
   syncSubsidyColumns();
   attachMonthScroll(document.getElementById('f-subsidy-start'));
