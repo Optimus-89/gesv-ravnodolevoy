@@ -139,6 +139,13 @@
     color: var(--text);
   }
   input[readonly] { background: #f3f5f8; color: var(--text-muted); cursor: default; }
+  /* Без стрелок-счётчиков в числовых полях ставки, срока и дня платежа. */
+  #f-rate, #f-term, #f-payment-day { -moz-appearance: textfield; appearance: textfield; }
+  #f-rate::-webkit-inner-spin-button, #f-rate::-webkit-outer-spin-button,
+  #f-term::-webkit-inner-spin-button, #f-term::-webkit-outer-spin-button,
+  #f-payment-day::-webkit-inner-spin-button, #f-payment-day::-webkit-outer-spin-button {
+    -webkit-appearance: none; margin: 0;
+  }
   input:focus, select:focus, button:focus {
     outline: 2px solid var(--accent);
     outline-offset: 1px;
@@ -2213,8 +2220,12 @@ function init() {
   attachIntegerZeroTrimBehavior(document.getElementById('f-grace-od-start'));
   attachIntegerZeroTrimBehavior(document.getElementById('f-grace-pct-start'));
   attachMonthScroll(document.getElementById('f-issue-date'));
-  attachMonthScroll(document.getElementById('f-end-date'));
-  attachMonthScroll(document.getElementById('f-first-payment-date'));
+  // Колёсико не должно менять значение числовых полей (и сдвигать даты окончания
+  // и первого платежа): при прокрутке над полем снимаем с него фокус.
+  ['f-rate', 'f-term', 'f-payment-day'].forEach(id => {
+    const el = document.getElementById(id);
+    el.addEventListener('wheel', () => { if (document.activeElement === el) el.blur(); }, { passive: true });
+  });
   attachMonthScroll(document.getElementById('f-rate2-date'));
   attachMonthScroll(document.getElementById('f-rate3-date'));
   attachRateToggle('f-rate2-enabled', 'f-rate2-content');
