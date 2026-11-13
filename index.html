@@ -2219,7 +2219,6 @@ function init() {
   attachFeePctBehavior(document.getElementById('f-fee-pct'));
   attachIntegerZeroTrimBehavior(document.getElementById('f-grace-od-start'));
   attachIntegerZeroTrimBehavior(document.getElementById('f-grace-pct-start'));
-  attachMonthScroll(document.getElementById('f-issue-date'));
   // Колёсико не должно менять значение числовых полей (и сдвигать даты окончания
   // и первого платежа): при прокрутке над полем снимаем с него фокус.
   ['f-rate', 'f-term', 'f-payment-day'].forEach(id => {
