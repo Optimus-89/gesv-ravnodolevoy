@@ -1478,7 +1478,8 @@ function generateSchedule(p) {
   }
 
   // Аннуитет: подбираем константный платёж X (методом бисекции, как для ГЭСВ),
-  // при котором «X минус фактически уплаченные проценты за период» на каждой
+  // при котором «X минус проценты текущего периода (без распределения пула, оно
+  // платится сверх платежа X)» на каждой
   // не-льготной дате ОД от startIndex до конца срока обнуляет остаток. Проценты
   // считаются через ту же stepInterest, что и основной цикл (с учётом пула между
   // несовпадающими датами ОД/% и по льготе %) — поэтому платёж остаётся
@@ -1489,8 +1490,8 @@ function generateSchedule(p) {
       let bal = startBalance;
       const state = { pool: poolAtStart, poolSub: poolSubAtStart };
       for (let j = startIndex; j <= M; j++) {
-        const { totalInterest } = stepInterest(state, j, bal);
-        if (dueOD[j] && !graceOD[j]) bal -= (X - totalInterest);
+        const { interestPaid } = stepInterest(state, j, bal);
+        if (dueOD[j] && !graceOD[j]) bal -= (X - interestPaid);
       }
       return bal;
     };
@@ -1540,7 +1541,9 @@ function generateSchedule(p) {
         principal = Math.min(balanceStart, weightOD[i]);
         needsResolve = true; // остаток отклонился от плановой траектории аннуитета
       } else if (p.method === 'annuity') {
-        principal = Math.max(0, Math.min(balanceStart, annuityX - totalInterest));
+        // Аннуитетный платёж покрывает ОД и проценты текущего периода; распределение
+        // накопленного пула % платится сверху и не уменьшает ОД.
+        principal = Math.max(0, Math.min(balanceStart, annuityX - interestPaid));
       } else {
         principal = balanceStart / remainingOD[i];
       }
