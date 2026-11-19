@@ -334,6 +334,17 @@
     padding: 8px 10px;
     margin-top: 10px;
   }
+  /* ---- Подсказки ⓘ ---- */
+  .info { display: inline-block; margin-left: 5px; color: var(--accent); cursor: pointer; font-size: 13px; font-weight: 700;
+    text-transform: none; letter-spacing: 0; user-select: none; line-height: 1; }
+  .info:hover, .info:focus { color: var(--accent-dark); outline: none; }
+  .grace-table-wrap th .info { color: #ffd966; }
+  .info-pop { position: fixed; z-index: 950; max-width: 300px; background: #fff; color: var(--text); border: 1px solid var(--border);
+    border-left: 3px solid var(--gold); border-radius: 6px; padding: 9px 12px; font-size: 12.5px; line-height: 1.45; font-weight: 400;
+    text-transform: none; letter-spacing: 0; box-shadow: 0 6px 20px rgba(0,0,0,0.22); display: none; }
+  .info-pop.visible { display: block; }
+  .info-pop a { display: block; margin-top: 6px; color: var(--accent); font-weight: 600; cursor: pointer; text-decoration: none; }
+  .info-pop a:hover { text-decoration: underline; }
   /* ---- Инструкция ---- */
   .guide-btn { flex: none; padding: 6px 12px; font-size: 12px; font-weight: 700; background: transparent; color: #fff;
     border: 1px solid rgba(255,255,255,0.55); border-radius: 6px; }
@@ -803,6 +814,30 @@ const I18N = {
     guideTitle: 'Инструкция к калькулятору',
     guidePrint: 'Печать / PDF',
     guideClose: 'Закрыть',
+    infoMore: 'Подробнее в инструкции',
+    infoLabel: 'Подсказка',
+    tipMethod: 'Равнодолевой — ОД делится поровну между датами погашения; аннуитетный — постоянный платёж (ОД + проценты).',
+    tipFirstPayment: 'Подставляется автоматически: через месяц после выдачи (если до неё меньше 15 дней — через два). Можно указать свою дату; при смене даты выдачи или дня платежа она пересчитывается.',
+    tipPaymentDay: 'Число месяца для платежей (1–31). В коротком месяце — последний день. Если дата выпадает на выходной или праздник РК, платёж переносится на рабочий день (⚠ в графике).',
+    tipGraceOd: 'Первые N месяцев ОД не гасится, платятся только проценты. Уменьшение числа снимает лишние месяцы; галочки, поставленные вручную, не затрагиваются.',
+    tipGracePct: 'Первые N месяцев проценты не платятся: они копятся в пуле и возвращаются выбранным способом распределения.',
+    tipFee: 'Комиссия при выдаче: % от суммы + фиксированная сумма. Уменьшает сумму, получаемую заёмщиком, и учитывается в ГЭСВ.',
+    tipBaseDays: 'База расчёта процентов по дням: 360 или 365.',
+    tipPeriod: 'Как часто платится ОД / проценты. Если проценты платятся реже месяца, между датами они копятся в пул. Последняя дата срока всегда платёжная.',
+    tipPool: 'Как возвращается накопленный пул процентов: первым платежом / равномерно на все платежи / до следующей льготы / вручную по суммам из таблицы «Льготы по месяцам».',
+    tipPoolSub: 'То же для субсидируемой части процентов — отдельный способ. Основной способ тогда работает только для клиентской части.',
+    tipSubsidy: 'Часть процентов по ставке субсидирования относится на субсидируемую часть, остальное — клиентская. ГЭСВ считается по общей сумме процентов.',
+    tipPoolTile: 'Непогашенные накопленные проценты. В конце срока должен быть 0.',
+    tipBucket: 'Служебный показатель, всегда 0.',
+    tipTotalPct: 'Проценты, фактически платящиеся в этом платеже: оплаченная часть начисления плюс распределение пула.',
+    tipAccruedLp: 'Сколько процентов периода ушло в пул (не оплачено в срок).',
+    tipDistLp: 'Сколько накопленных процентов списано из пула и оплачено в этом платеже.',
+    tipGraceOdCol: 'Галочка: в этом месяце ОД не гасится.',
+    tipWeightOd: 'Сумма ОД к погашению в этом месяце (0 — по типу графика). На последней дате остаток закрывается полностью.',
+    tipGracePctCol: 'Галочка: проценты этого месяца не платятся, а копятся в пул. Поля сумм распределения в такой строке блокируются.',
+    tipPayPct: 'Сколько процентов платит заёмщик в этом месяце: в графике будет именно эта сумма. Недоплата уходит в пул, превышение берётся из пула. На последней дате по % не действует.',
+    tipWeightPct: 'Сколько списать из накопленного пула в этом месяце сверх начисленных процентов (способ «Ручное распределение»). Не больше остатка пула.',
+    tipWeightSub: 'То же для субсидируемой части (при ручном способе для неё).',
     guideHtml: `<nav class="guide-toc">
   <b>Содержание</b>
   <ol>
@@ -836,7 +871,7 @@ const I18N = {
   <li>Для ручной настройки откройте «Льготы по месяцам» под графиком, внесите суммы и снова нажмите «Рассчитать».</li>
   <li>Нажмите <b>«Экспорт в Excel»</b>, чтобы сохранить график.</li>
 </ol>
-<div class="guide-tip"><b>Важно:</b> после любого изменения данных нажимайте «Рассчитать» — график, ГЭСВ и уведомления обновляются только по этой кнопке.<br><b>Клавиша Enter</b> переводит на следующее поле (Shift+Enter — на предыдущее); с последнего поля параметров фокус попадает на кнопку «Рассчитать», и ещё один Enter запускает расчёт. Колесо мыши значения полей не меняет.</div>
+<div class="guide-tip"><b>Важно:</b> после любого изменения данных нажимайте «Рассчитать» — график, ГЭСВ и уведомления обновляются только по этой кнопке.<br><b>Клавиша Enter</b> переводит на следующее поле (Shift+Enter — на предыдущее); с последнего поля параметров фокус попадает на кнопку «Рассчитать», и ещё один Enter запускает расчёт. Колесо мыши значения полей не меняет.<br>Значок <b>ⓘ</b> рядом с названием поля или столбца — краткая подсказка со ссылкой на подробное описание в этой инструкции.</div>
 
 <h3 id="g-params">3. Параметры кредита</h3>
 <table class="guide-table">
@@ -1183,6 +1218,30 @@ const I18N = {
     guideTitle: 'Калькуляторға нұсқаулық',
     guidePrint: 'Басып шығару / PDF',
     guideClose: 'Жабу',
+    infoMore: 'Нұсқаулықта толығырақ',
+    infoLabel: 'Түсініктеме',
+    tipMethod: 'Тең үлестік — НБ өтеу күндеріне тең бөлінеді; аннуитеттік — тұрақты төлем (НБ + сыйақы).',
+    tipFirstPayment: 'Өздігінен қойылады: берілгеннен кейін бір ай (егер дейін 15 күннен аз болса — екі ай). Өз күніңізді көрсетуге болады; берілген күн немесе төлем күні өзгергенде қайта есептеледі.',
+    tipPaymentDay: 'Төлемдер үшін айдың күні (1–31). Қысқа айда — соңғы күн. Күн демалыс немесе ҚР мерекесіне түссе, төлем жұмыс күніне ауыстырылады (кестеде ⚠).',
+    tipGraceOd: 'Алғашқы N айда НБ өтелмейді, тек сыйақы төленеді. Санды азайту артық айларды алады; қолмен қойылған құсбелгілерге тиіспейді.',
+    tipGracePct: 'Алғашқы N айда сыйақы төленбейді: ол пулда жиналып, таңдалған бөлу тәсілімен қайтарылады.',
+    tipFee: 'Беру кезіндегі комиссия: соманың % + тіркелген сома. Қарыз алушы алатын соманы азайтады және СЖТМ-да ескеріледі.',
+    tipBaseDays: 'Сыйақыны күндер бойынша есептеу базасы: 360 немесе 365.',
+    tipPeriod: 'НБ / сыйақы қаншалықты жиі төленеді. Сыйақы айдан сирек төленсе, төлем күндері арасында ол пулға жиналады. Мерзімнің соңғы күні әрдайым төлем күні.',
+    tipPool: 'Жинақталған сыйақы пулы қалай қайтарылады: бірінші төлеммен / барлық төлемдерге тең / келесі жеңілдікке дейін / «Айлар бойынша жеңілдіктер» кестесіндегі сомалар бойынша қолмен.',
+    tipPoolSub: 'Сыйақының субсидияланатын бөлігі үшін де солай — бөлек тәсіл. Сонда негізгі тәсіл тек клиенттік бөлікке жұмыс істейді.',
+    tipSubsidy: 'Субсидиялау мөлшерлемесі бойынша сыйақы бөлігі субсидияланатын бөлікке жатады, қалғаны — клиенттік. СЖТМ сыйақының жалпы сомасы бойынша есептеледі.',
+    tipPoolTile: 'Өтелмеген жинақталған сыйақы. Мерзім соңында 0 болуы керек.',
+    tipBucket: 'Қызметтік көрсеткіш, әрдайым 0.',
+    tipTotalPct: 'Осы төлемде нақты төленетін сыйақы: есептеудің төленген бөлігі плюс пулды бөлу.',
+    tipAccruedLp: 'Кезең сыйақысының қаншасы пулға түсті (уақытында төленбеді).',
+    tipDistLp: 'Жинақталған сыйақының қаншасы пулдан есептен шығарылып, осы төлемде төленді.',
+    tipGraceOdCol: 'Құсбелгі: осы айда НБ өтелмейді.',
+    tipWeightOd: 'Осы айда өтелетін НБ сомасы (0 — кесте түрі бойынша). Соңғы күні қалдық толық жабылады.',
+    tipGracePctCol: 'Құсбелгі: осы айдың сыйақысы төленбейді, пулға жиналады. Мұндай жолда бөлу сомасы өрістері бұғатталады.',
+    tipPayPct: 'Қарыз алушы осы айда қанша сыйақы төлейді: графикте дәл осы сома болады. Кем төлем пулға түседі, артығы пулдан алынады. Сыйақы бойынша соңғы күні әрекет етпейді.',
+    tipWeightPct: 'Осы айда есептелген сыйақыдан тыс жинақталған пулдан қанша есептен шығару керек («Қолмен бөлу» тәсілі). Пул қалдығынан аспайды.',
+    tipWeightSub: 'Субсидияланатын бөлік үшін де солай (ол үшін қолмен тәсілде).',
     guideHtml: `<nav class="guide-toc">
   <b>Мазмұны</b>
   <ol>
@@ -1216,7 +1275,7 @@ const I18N = {
   <li>Қолмен баптау үшін кесте астындағы «Айлар бойынша жеңілдіктер» блогын ашып, сомаларды енгізіңіз де, қайтадан «Есептеу» түймесін басыңыз.</li>
   <li>Кестені сақтау үшін <b>«Excel-ге экспорттау»</b> түймесін басыңыз.</li>
 </ol>
-<div class="guide-tip"><b>Маңызды:</b> деректерді өзгерткен сайын «Есептеу» түймесін басыңыз — кесте, СЖТМ және хабарландырулар тек осы түйме арқылы жаңарады.<br><b>Enter пернесі</b> келесі өріске өтеді (Shift+Enter — алдыңғысына); параметрлердің соңғы өрісінен кейін фокус «Есептеу» түймесіне түседі, тағы бір Enter есептеуді іске қосады. Тінтуір дөңгелегі өріс мәндерін өзгертпейді.</div>
+<div class="guide-tip"><b>Маңызды:</b> деректерді өзгерткен сайын «Есептеу» түймесін басыңыз — кесте, СЖТМ және хабарландырулар тек осы түйме арқылы жаңарады.<br><b>Enter пернесі</b> келесі өріске өтеді (Shift+Enter — алдыңғысына); параметрлердің соңғы өрісінен кейін фокус «Есептеу» түймесіне түседі, тағы бір Enter есептеуді іске қосады. Тінтуір дөңгелегі өріс мәндерін өзгертпейді.<br>Өріс немесе баған атауының жанындағы <b>ⓘ</b> белгісі — осы нұсқаулықтағы толық сипаттамаға сілтемесі бар қысқаша түсініктеме.</div>
 
 <h3 id="g-params">3. Кредит параметрлері</h3>
 <table class="guide-table">
@@ -1520,6 +1579,7 @@ function applyI18n() {
   document.querySelectorAll('[data-i18n-html]').forEach(el => { el.innerHTML = t(el.dataset.i18nHtml); });
   document.getElementById('btn-lang-ru').classList.toggle('active', currentLang === 'ru');
   document.getElementById('btn-lang-kk').classList.toggle('active', currentLang === 'kk');
+  ensureInfoIcons();
 }
 
 function setLanguage(lang) {
@@ -2912,6 +2972,106 @@ function enableEnterAsTab() {
   });
 }
 
+// ---- Подсказки ⓘ: значок рядом с названием поля/столбца, по клику (или наведению) —
+// короткий текст и ссылка на нужный раздел инструкции. Значки добавляются заново
+// после смены языка (applyI18n переписывает текст подписей).
+const INFO_ITEMS = [
+  { sel: '.f-method-label', tip: 'tipMethod', guide: 'g-params' },
+  { sel: 'label[for="f-first-payment-date"]', tip: 'tipFirstPayment', guide: 'g-params' },
+  { sel: 'label[for="f-payment-day"]', tip: 'tipPaymentDay', guide: 'g-params' },
+  { sel: 'label[for="f-grace-od-start"]', tip: 'tipGraceOd', guide: 'g-params' },
+  { sel: 'label[for="f-grace-pct-start"]', tip: 'tipGracePct', guide: 'g-params' },
+  { sel: 'label[for="f-fee-pct"], label[for="f-fee-fix"]', tip: 'tipFee', guide: 'g-params' },
+  { sel: 'label[for="f-base-days"]', tip: 'tipBaseDays', guide: 'g-period' },
+  { sel: 'label[for="f-od-period"], label[for="f-pct-period"]', tip: 'tipPeriod', guide: 'g-period' },
+  { sel: 'label[for="f-pool-method"]', tip: 'tipPool', guide: 'g-pool' },
+  { sel: 'label[for="f-pool-method-sub"]', tip: 'tipPoolSub', guide: 'g-pool' },
+  { sel: 'label[for="f-subsidy-pct"]', tip: 'tipSubsidy', guide: 'g-subsidy' },
+  { sel: '.tile-label[data-i18n="tilePool"]', tip: 'tipPoolTile', guide: 'g-results' },
+  { sel: '.tile-label[data-i18n="tileBucket"]', tip: 'tipBucket', guide: 'g-results' },
+  { sel: '#schedule-table th[data-i18n="colTotalPct"]', tip: 'tipTotalPct', guide: 'g-schedule' },
+  { sel: '#schedule-table th[data-i18n="colAccruedLp"]', tip: 'tipAccruedLp', guide: 'g-schedule' },
+  { sel: '#schedule-table th[data-i18n="colDistLp"]', tip: 'tipDistLp', guide: 'g-schedule' },
+  { sel: '#grace-table th[data-i18n="graceOdColHeader"]', tip: 'tipGraceOdCol', guide: 'g-months' },
+  { sel: '#grace-table th[data-i18n="weightOdColHeader"]', tip: 'tipWeightOd', guide: 'g-months' },
+  { sel: '#grace-table th[data-i18n="gracePctColHeader"]', tip: 'tipGracePctCol', guide: 'g-months' },
+  { sel: '#grace-table th[data-i18n="payPctColHeader"]', tip: 'tipPayPct', guide: 'g-months' },
+  { sel: '#grace-table th[data-i18n="weightPctColHeader"]', tip: 'tipWeightPct', guide: 'g-months' },
+  { sel: '#grace-table th[data-i18n="weightPctSubColHeader"]', tip: 'tipWeightSub', guide: 'g-months' },
+];
+
+function ensureInfoIcons() {
+  INFO_ITEMS.forEach(item => document.querySelectorAll(item.sel).forEach(el => {
+    if (el.querySelector(':scope > .info')) return;
+    const icon = document.createElement('span');
+    icon.className = 'info';
+    icon.tabIndex = 0;
+    icon.setAttribute('role', 'button');
+    icon.setAttribute('aria-label', t('infoLabel'));
+    icon.dataset.tip = item.tip;
+    icon.dataset.guide = item.guide;
+    icon.textContent = 'ⓘ';
+    el.appendChild(icon);
+  }));
+}
+
+let openGuideFn = null;
+
+function setupInfoPopover() {
+  const pop = document.createElement('div');
+  pop.className = 'info-pop';
+  pop.setAttribute('role', 'tooltip');
+  document.body.appendChild(pop);
+  let current = null;
+  const hide = () => { pop.classList.remove('visible'); current = null; };
+  const show = (icon) => {
+    current = icon;
+    pop.innerHTML = '';
+    const text = document.createElement('div');
+    text.textContent = t(icon.dataset.tip);
+    const more = document.createElement('a');
+    more.textContent = t('infoMore');
+    more.dataset.guide = icon.dataset.guide;
+    pop.append(text, more);
+    pop.classList.add('visible');
+    const r = icon.getBoundingClientRect();
+    const w = pop.offsetWidth, h = pop.offsetHeight;
+    let left = Math.min(Math.max(8, r.left - 8), window.innerWidth - w - 8);
+    let top = r.bottom + 6;
+    if (top + h > window.innerHeight - 8) top = Math.max(8, r.top - h - 6);
+    pop.style.left = left + 'px';
+    pop.style.top = top + 'px';
+  };
+  document.addEventListener('click', (e) => {
+    const icon = e.target.closest('.info');
+    if (icon) {
+      e.preventDefault();
+      e.stopPropagation();
+      if (current === icon) hide(); else show(icon);
+      return;
+    }
+    const more = e.target.closest('.info-pop a');
+    if (more) {
+      e.preventDefault();
+      const id = more.dataset.guide;
+      hide();
+      if (openGuideFn) openGuideFn(id);
+      return;
+    }
+    if (!e.target.closest('.info-pop')) hide();
+  }, true);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') hide();
+    else if ((e.key === 'Enter' || e.key === ' ') && e.target.classList && e.target.classList.contains('info')) {
+      e.preventDefault();
+      e.stopPropagation();
+      if (current === e.target) hide(); else show(e.target);
+    }
+  }, true);
+  window.addEventListener('scroll', hide, true);
+  window.addEventListener('resize', hide);
+}
+
 // Окно «Инструкция»: открывается кнопкой в шапке, закрывается крестиком-кнопкой,
 // Esc или кликом по затемнению; ссылки оглавления прокручивают внутри окна.
 function setupGuide() {
@@ -2931,6 +3091,11 @@ function setupGuide() {
     document.body.classList.remove('guide-open');
     openBtn.focus();
   };
+  openGuideFn = (sectionId) => {
+    open();
+    const target = sectionId && document.getElementById(sectionId);
+    if (target) target.scrollIntoView({ block: 'start' });
+  };
   openBtn.addEventListener('click', open);
   document.getElementById('btn-guide-close').addEventListener('click', close);
   document.getElementById('btn-guide-print').addEventListener('click', () => window.print());
@@ -2949,6 +3114,8 @@ function init() {
   applyI18n();
   enableEnterAsTab();
   setupGuide();
+  setupInfoPopover();
+  ensureInfoIcons();
   document.getElementById('btn-lang-ru').addEventListener('click', () => setLanguage('ru'));
   document.getElementById('btn-lang-kk').addEventListener('click', () => setLanguage('kk'));
 
