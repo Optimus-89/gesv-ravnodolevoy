@@ -2201,8 +2201,41 @@ function attachRateToggle(checkboxId, contentId) {
   sync();
 }
 
+// Enter переводит фокус на следующее поле формы (Shift+Enter — на предыдущее).
+// Идём по порядку в документе, пропуская скрытые (свёрнутые блоки, столбцы
+// субсидирования) и недоступные поля; после последнего поля параметров фокус
+// попадает на кнопку «Рассчитать», и следующий Enter запускает расчёт.
+// Ввод по столбцу в таблице «Льготы по месяцам» (focusNextRowOnEnter) не трогаем.
+function enableEnterAsTab() {
+  const selector = 'input:not([type=hidden]):not([type=checkbox]):not([type=radio]), select, #btn-calc';
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' || e.defaultPrevented || e.isComposing) return;
+    if (e.ctrlKey || e.altKey || e.metaKey) return;
+    const el = e.target;
+    if (!el || !(el.matches('input, select'))) return;
+    if (el.matches('input[type=button], input[type=submit], input[type=reset]')) return;
+    const fields = [...document.querySelectorAll(selector)].filter(f =>
+      !f.disabled && !f.readOnly && f.offsetParent !== null && f.tabIndex !== -1);
+    let next;
+    if (fields.includes(el)) {
+      next = fields[fields.indexOf(el) + (e.shiftKey ? -1 : 1)];
+    } else {
+      // Галочка/радиокнопка не входят в список целей — берём ближайшее поле после (до) неё.
+      const after = f => !!(el.compareDocumentPosition(f) & Node.DOCUMENT_POSITION_FOLLOWING);
+      next = e.shiftKey ? fields.filter(f => !after(f)).pop() : fields.find(after);
+    }
+    e.preventDefault();
+    if (!next) return;
+    next.focus();
+    if (next.matches('input[type=text], input[type=number], input:not([type])')) {
+      try { next.select(); } catch (err) { /* select() поддерживается не всеми типами */ }
+    }
+  });
+}
+
 function init() {
   applyI18n();
+  enableEnterAsTab();
   document.getElementById('btn-lang-ru').addEventListener('click', () => setLanguage('ru'));
   document.getElementById('btn-lang-kk').addEventListener('click', () => setLanguage('kk'));
 
