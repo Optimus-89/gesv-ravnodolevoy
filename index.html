@@ -253,7 +253,6 @@
   .weight-input:disabled { background: #eceff3; color: #9aa3ad; cursor: not-allowed; }
   .weight-input.over-accrued { border-color: #c0392b; color: #c0392b; background: #fdecea; }
   .warn-red { color: #c0392b; font-weight: 600; font-size: 12px; margin: 6px 0; }
-  td.cell-over { color: #c0392b; font-weight: 700; }
   .toast { white-space: pre-line; position: fixed; top: 16px; right: 16px; z-index: 1000; max-width: 340px; padding: 12px 16px; border-radius: 8px;
     background: #c0392b; color: #fff; font-size: 14px; font-weight: 600; box-shadow: 0 6px 20px rgba(0,0,0,.25);
     cursor: pointer; opacity: 0; transform: translateY(-8px); transition: opacity .2s, transform .2s; pointer-events: none; }
@@ -690,7 +689,6 @@
           </tbody>
         </table>
       </div>
-      <div class="warn-red" id="dist-warning" style="display:none; margin: 8px 0;"></div>
       <div class="note" data-i18n="scheduleFootnote">Строки с активной льготой выделены цветом. Значок ⚠ у даты означает перенос с выходного/праздничного дня РК.</div>
     </div>
 
@@ -710,7 +708,6 @@
             </table>
           </div>
           <div class="warn-red" id="paypct-warning" style="display:none;"></div>
-          <div class="warn-red" id="poolsum-warning" style="display:none;"></div>
           <div class="field-note" data-i18n="payPctNote">«Платёж по % (ручн.)» — сумма процентов, которая платится в этом месяце (вне льготы по %): в графике показывается именно она. Начисленное сверх указанной суммы уходит в пул и распределяется выбранным способом в следующие месяцы; если сумма больше начисленного, разница берётся из накопленного пула (не больше его остатка). В этом месяце распределение пула по способу не применяется. При субсидировании сумма делится между субсидируемой и клиентской частью пропорционально. На последней дате по % платятся все проценты и весь пул.</div>
           <div class="inline-field">
             <label for="f-pool-spread-months" data-i18n="poolSpreadLabel">Распределить % за ЛП на, мес.</label>
@@ -943,7 +940,7 @@ const I18N = {
   <tr><td>Итоговый платёж</td><td>ОД + проценты к уплате.</td></tr>
   <tr><td>Остаток на конец</td><td>Остаток ОД после платежа.</td></tr>
 </table>
-<p>Строки с активной льготой выделены цветом. Красная ячейка в «Распределении процентов за ЛП» означает, что введённая вручную сумма распределения больше начисленного за период (см. «Уведомления»).</p>
+<p>Строки с активной льготой выделены цветом.</p>
 
 <h3 id="g-months">10. Льготы по месяцам: столбцы и ручной ввод</h3>
 <p>Таблица под графиком (раскрывается по клику на заголовок). Каждая строка — один платёж; подпись показывает месяц и год. Все значения вступают в силу после кнопки <b>«Рассчитать»</b>.</p>
@@ -954,7 +951,7 @@ const I18N = {
   <tr><td>Сумма распределения по ОД (ручн.)</td><td>Сумма ОД, которую вы хотите погасить в этом месяце. 0 — по типу графика (поровну или аннуитетом). Сумма не больше остатка долга. После ручной суммы остальные месяцы пересчитываются на оставшийся остаток. На последней дате погашения остаток закрывается полностью независимо от введённого.</td></tr>
   <tr><td>Льгота %</td><td>Галочка: в этом месяце проценты <b>не платятся</b>, начисление уходит в пул. В такой строке поля «Сумма распределения по %» блокируются (серые).</td></tr>
   <tr><td>Платёж по % (ручн.)</td><td>Проценты, которые вы платите в этом месяце (вне льготы по %). В графике показывается <b>именно эта сумма</b>. Начисленное сверх неё уходит в пул и распределяется выбранным способом в следующие месяцы. Если ввели больше начисленного, разница берётся из накопленного пула (не больше его остатка) — появится красное уведомление. В этом месяце обычное распределение пула не применяется. На последней дате по % платятся все проценты и весь пул, поэтому сумма там не действует. При субсидировании сумма делится между частями пропорционально начисленному. 0 или пусто — платятся начисленные проценты.</td></tr>
-  <tr><td>Сумма распределения по % (ручн.)</td><td>Сколько из накопленного пула списать <b>в этом месяце сверх начисленных процентов</b>. Работает при способе «Ручное распределение». Не больше остатка пула (иначе уведомление). Поле блокируется в месяцах с льготой по %, где платежа по процентам нет. Остаток пула, который вы не распределили, списывается на последней дате по %.</td></tr>
+  <tr><td>Сумма распределения по % (ручн.)</td><td>Сколько из накопленного пула списать <b>в этом месяце сверх начисленных процентов</b>. Работает при способе «Ручное распределение». Не больше остатка пула (списывается только остаток). Поле блокируется в месяцах с льготой по %, где платежа по процентам нет. Остаток пула, который вы не распределили, списывается на последней дате по %.</td></tr>
   <tr><td>Сумма распределения по % субсид. (ручн.)</td><td>То же для субсидируемой части; видно только при включённом субсидировании и работает при ручном способе для субсидируемой части.</td></tr>
 </table>
 <p><b>Распределить % за ЛП на, мес. + «Применить».</b> Автоматически заполняет столбец «Сумма распределения по % (ручн.)»: сначала нажмите «Рассчитать» (чтобы появился пул), затем укажите число месяцев и «Применить». Накопленное за каждый льготный период равномерно раскладывается на указанное число платежей после него; способ распределения переключается на «Ручное распределение». После этого снова нажмите «Рассчитать». При изменении графика нажмите «Применить» ещё раз.</p>
@@ -974,8 +971,6 @@ const I18N = {
 <h3 id="g-warn">12. Уведомления (красный текст)</h3>
 <ul>
   <li><b>«Платёж по % (ручн.)» больше начисленных процентов.</b> Красная надпись под таблицей «Льготы по месяцам», красное поле и всплывающее сообщение «Указанная сумма превышает сумму начисленного вознаграждения». Разница будет взята из пула.</li>
-  <li><b>«Сумма распределения по % (ручн.)» больше накопленного пула</b> (при ручном способе). Надпись, красное поле и сообщение «Указанная сумма превышает сумму накопленного вознаграждения (пула)». Спишется только остаток пула.</li>
-  <li><b>Введённая вручную сумма распределения больше начисленного</b> вознаграждения за месяц. Красная ячейка в графике, надпись под графиком и сообщение «Сумма распределения превышает сумму начисленного вознаграждения». Для автоматических способов такое уведомление не показывается.</li>
 </ul>
 <p>Это предупреждения: расчёт при этом выполняется. Они используют данные последнего расчёта, поэтому после изменений нажмите «Рассчитать».</p>
 
@@ -1042,14 +1037,6 @@ const I18N = {
 <p><b>Что делать, если плитки красные?</b> Остаток пула или долга не равен 0: проверьте ручные суммы и льготы, затем нажмите «Рассчитать».</p>`,
     payPctWarnTitle: 'Указанная сумма в столбце «Платёж по % (ручн.)» больше начисленных процентов:',
     payPctToast: 'Указанная сумма превышает сумму начисленного вознаграждения',
-    poolSumToast: 'Указанная сумма превышает сумму накопленного вознаграждения (пула)',
-    distOverToast: 'Сумма распределения превышает сумму начисленного вознаграждения',
-    distOverTitle: 'Сумма распределения превышает сумму начисленного вознаграждения:',
-    distOverAccrued: 'начислено',
-    distOverDist: 'распределение',
-    poolSumWarnTitle: 'Указанная сумма в столбце «Сумма распределения по %» больше накопленного пула процентов:',
-    poolSumWarnPool: 'в пуле',
-    poolSumWarnSub: 'субсид.',
     payPctWarnItem: 'указано',
     payPctWarnAccrued: 'начислено',
     payPctNote: '«Платёж по % (ручн.)» — сумма процентов, которая платится в этом месяце (вне льготы по %): в графике показывается именно она. Начисленное сверх указанной суммы уходит в пул и распределяется выбранным способом в следующие месяцы; если сумма больше начисленного, разница берётся из накопленного пула (не больше его остатка). В этом месяце распределение пула по способу не применяется. При субсидировании сумма делится между субсидируемой и клиентской частью пропорционально. На последней дате по % платятся все проценты и весь пул.',
@@ -1347,7 +1334,7 @@ const I18N = {
   <tr><td>Қорытынды төлем</td><td>НБ + төленетін сыйақы.</td></tr>
   <tr><td>Соңына қалдық</td><td>Төлемнен кейінгі НБ қалдығы.</td></tr>
 </table>
-<p>Белсенді жеңілдігі бар жолдар түспен ерекшеленген. «ЖК бойынша сыйақы бөлу» бағанындағы қызыл ұяшық қолмен енгізілген бөлу сомасы кезең үшін есептелгеннен көп екенін білдіреді («Хабарландырулар» бөлімін қараңыз).</p>
+<p>Белсенді жеңілдігі бар жолдар түспен ерекшеленген.</p>
 
 <h3 id="g-months">10. Айлар бойынша жеңілдіктер: бағандар және қолмен енгізу</h3>
 <p>Кесте астындағы кесте (тақырыпты басқанда ашылады). Әрбір жол — бір төлем; жазуда төлемнің айы мен жылы көрсетілген. Барлық мәндер <b>«Есептеу»</b> түймесінен кейін күшіне енеді.</p>
@@ -1358,7 +1345,7 @@ const I18N = {
   <tr><td>НБ бөлу сомасы (қолмен)</td><td>Осы айда өтегіңіз келетін НБ сомасы. 0 — кесте түрі бойынша (тең немесе аннуитетпен). Сома борыш қалдығынан аспайды. Қолмен соманы енгізгеннен кейін қалған айлар қалған қалдыққа қайта есептеледі. Соңғы өтеу күні қалдық енгізілгенге қарамастан толық жабылады.</td></tr>
   <tr><td>Сыйақы жеңілдігі</td><td>Құсбелгі: осы айда сыйақы <b>төленбейді</b>, есептеу пулға түседі. Мұндай жолда «Сыйақыны бөлу сомасы» өрістері бұғатталады (сұр).</td></tr>
   <tr><td>Сыйақы төлемі (қолмен)</td><td>Осы айда төлейтін сыйақыңыз (сыйақы бойынша жеңілдіктен тыс). Графикте <b>дәл осы сома</b> көрсетіледі. Одан артық есептелгені пулға түсіп, келесі айларда таңдалған тәсілмен бөлінеді. Есептелгеннен көп енгізсеңіз, айырма жинақталған пулдан алынады (оның қалдығынан аспайды) — қызыл хабарландыру шығады. Бұл айда пулды әдеттегі бөлу қолданылмайды. Сыйақы бойынша соңғы күні барлық сыйақы мен бүкіл пул төленеді, сондықтан онда сома әрекет етпейді. Субсидиялау кезінде сома бөліктер арасында есептелгенге пропорционал бөлінеді. 0 немесе бос — есептелген сыйақы төленеді.</td></tr>
-  <tr><td>Сыйақыны бөлу сомасы (қолмен)</td><td>Жинақталған пулдан осы айда есептелген сыйақыдан <b>тыс</b> қанша есептен шығару керек. «Қолмен бөлу» тәсілінде жұмыс істейді. Пул қалдығынан аспайды (әйтпесе хабарландыру). Сыйақы бойынша жеңілдігі бар, сыйақы төлемі жоқ айларда өріс бұғатталады. Бөлінбей қалған пул қалдығы сыйақы бойынша соңғы күні есептен шығарылады.</td></tr>
+  <tr><td>Сыйақыны бөлу сомасы (қолмен)</td><td>Жинақталған пулдан осы айда есептелген сыйақыдан <b>тыс</b> қанша есептен шығару керек. «Қолмен бөлу» тәсілінде жұмыс істейді. Пул қалдығынан аспайды (тек қалдық есептен шығарылады). Сыйақы бойынша жеңілдігі бар, сыйақы төлемі жоқ айларда өріс бұғатталады. Бөлінбей қалған пул қалдығы сыйақы бойынша соңғы күні есептен шығарылады.</td></tr>
   <tr><td>Субсид. сыйақыны бөлу сомасы (қолмен)</td><td>Субсидияланатын бөлік үшін де солай; тек субсидиялау қосулы болғанда көрінеді және субсидияланатын бөлік үшін қолмен тәсілде жұмыс істейді.</td></tr>
 </table>
 <p><b>ЖК бойынша сыйақыны бөлу, ай + «Қолдану».</b> «Сыйақыны бөлу сомасы (қолмен)» бағанын автоматты түрде толтырады: алдымен «Есептеу» түймесін басыңыз (пул пайда болу үшін), содан кейін ай санын көрсетіп, «Қолдану» түймесін басыңыз. Әрбір жеңілдік кезеңі үшін жинақталған сома одан кейінгі көрсетілген төлем санына тең бөлінеді; бөлу тәсілі «Қолмен бөлу» болып ауысады. Осыдан кейін қайтадан «Есептеу» түймесін басыңыз. Кесте өзгерсе, «Қолдану» түймесін тағы басыңыз.</p>
@@ -1378,8 +1365,6 @@ const I18N = {
 <h3 id="g-warn">12. Хабарландырулар (қызыл мәтін)</h3>
 <ul>
   <li><b>«Сыйақы төлемі (қолмен)» есептелген сыйақыдан көп.</b> «Айлар бойынша жеңілдіктер» кестесінің астында қызыл жазу, қызыл өріс және «Көрсетілген сома есептелген сыйақы сомасынан асады» деген қалқымалы хабар. Айырма пулдан алынады.</li>
-  <li><b>«Сыйақыны бөлу сомасы (қолмен)» жинақталған пулдан көп</b> (қолмен тәсілде). Жазу, қызыл өріс және «Көрсетілген сома жинақталған сыйақы (пул) сомасынан асады» хабары. Тек пул қалдығы есептен шығарылады.</li>
-  <li><b>Қолмен енгізілген бөлу сомасы</b> ай үшін есептелген сыйақыдан көп. Кестедегі қызыл ұяшық, кесте астындағы жазу және «Бөлу сомасы есептелген сыйақы сомасынан асады» хабары. Автоматты тәсілдер үшін мұндай хабарландыру көрсетілмейді.</li>
 </ul>
 <p>Бұл — ескертулер: есептеу орындалады. Олар соңғы есептеу деректерін пайдаланады, сондықтан өзгерістерден кейін «Есептеу» түймесін басыңыз.</p>
 
@@ -1446,14 +1431,6 @@ const I18N = {
 <p><b>Тақтайшалар қызыл болса не істеу керек?</b> Пул немесе борыш қалдығы 0-ге тең емес: қолмен енгізілген сомалар мен жеңілдіктерді тексеріп, «Есептеу» түймесін басыңыз.</p>`,
     payPctWarnTitle: '«Сыйақы төлемі (қолмен)» бағанында көрсетілген сома есептелген сыйақыдан көп:',
     payPctToast: 'Көрсетілген сома есептелген сыйақы сомасынан асады',
-    poolSumToast: 'Көрсетілген сома жинақталған сыйақы (пул) сомасынан асады',
-    distOverToast: 'Бөлу сомасы есептелген сыйақы сомасынан асады',
-    distOverTitle: 'Бөлу сомасы есептелген сыйақы сомасынан көп:',
-    distOverAccrued: 'есептелген',
-    distOverDist: 'бөлу',
-    poolSumWarnTitle: '«Сыйақыны бөлу сомасы» бағанында көрсетілген сома жинақталған сыйақы пулынан көп:',
-    poolSumWarnPool: 'пулда',
-    poolSumWarnSub: 'субсид.',
     payPctWarnItem: 'көрсетілген',
     payPctWarnAccrued: 'есептелген',
     payPctNote: '«Сыйақы төлемі (қолмен)» — осы айда төленетін сыйақы сомасы (сыйақы бойынша жеңілдіктен тыс): графикте дәл сол көрсетіледі. Көрсетілген сомадан артық есептелген бөлік пулға түсіп, келесі айларда таңдалған тәсілмен бөлінеді; егер сома есептелгеннен көп болса, айырма жинақталған пулдан алынады (оның қалдығынан аспайды). Бұл айда пулды бөлу тәсілі қолданылмайды. Субсидиялау кезінде сома пропорционал бөлінеді. Сыйақы бойынша соңғы күні барлық сыйақы мен пулдың бүкіл қалдығы төленеді.',
@@ -2074,9 +2051,6 @@ function generateSchedule(p) {
       totalInterest: interestPaid + distribution,
       subsidyPart: paidSub + distSub,
       poolEndSub: state.poolSub,
-      poolStartClient: Math.max(0, poolStart - poolSubStart),
-      poolStartSub: Math.max(0, poolSubStart),
-      lastPct: remainingPct[i] === 1,
     };
   }
 
@@ -2128,7 +2102,7 @@ function generateSchedule(p) {
       needsResolve = false;
     }
 
-    const { interestAccrued, interestPaid, poolAdd, distribution, poolEnd, totalInterest, subsidyPart, poolEndSub, poolStartClient, poolStartSub, lastPct } = stepInterest(state, i, balanceStart);
+    const { interestAccrued, interestPaid, poolAdd, distribution, poolEnd, totalInterest, subsidyPart, poolEndSub } = stepInterest(state, i, balanceStart);
     const clientPart = totalInterest - subsidyPart;
 
     // Вес ОД — сумма (не доля), направляемая на погашение в этом месяце (0 =
@@ -2165,7 +2139,7 @@ function generateSchedule(p) {
       i, date: monthDates[i], adjusted: wasAdjusted[i],
       dueOD: dueOD[i], duePct: duePct[i], graceOD: graceOD[i], gracePct: gracePct[i],
       balanceStart, principal, interestAccrued, totalInterest, subsidyPart, clientPart, poolAdd, distribution,
-      poolEnd, poolEndSub, poolStartClient, poolStartSub, lastPct, bucketEnd: 0, fee, totalPayment, balanceEnd,
+      poolEnd, poolEndSub, bucketEnd: 0, fee, totalPayment, balanceEnd,
     });
 
     balance = balanceEnd;
@@ -2456,66 +2430,10 @@ function updatePayPctWarning() {
   return over;
 }
 
-// То же для «Сумма распределения по % (ручн.)» (и субсидируемой части): сумма
-// больше накопленного пула на начало месяца. Работает при ручном способе
-// распределения; на последней дате по % списывается весь пул, сумма не нужна.
-function updatePoolWarning() {
-  const box = document.getElementById('poolsum-warning');
-  if (!box) return [];
-  const over = [];
-  if (lastResult) {
-    const params = lastResult.params;
-    const clientManual = params.poolMethod === 'manual';
-    const subManual = params.subsidyEnabled && params.poolMethodSub === 'manual';
-    lastResult.rows.forEach((r, idx) => {
-      const m = monthsState[idx];
-      if (!m || !r.duePct || r.gracePct || r.lastPct) return;
-      const v = Number(m.weight) || 0, vs = Number(m.weightSub) || 0;
-      if (clientManual && v > 0 && v > r.poolStartClient + 0.005) over.push({ idx, field: 'weight', v, avail: r.poolStartClient, sub: false });
-      if (subManual && vs > 0 && vs > r.poolStartSub + 0.005) over.push({ idx, field: 'weightSub', v: vs, avail: r.poolStartSub, sub: true });
-    });
-  }
-  document.querySelectorAll('#grace-tbody input[data-field="weight"], #grace-tbody input[data-field="weightSub"]').forEach(inp => {
-    inp.classList.toggle('over-accrued', over.some(o => o.idx === +inp.dataset.idx && o.field === inp.dataset.field));
-  });
-  if (!over.length) { box.style.display = 'none'; box.textContent = ''; return over; }
-  box.textContent = t('poolSumWarnTitle') + ' ' + over.map(o =>
-    `${graceMonthLabel(o.idx)}${o.sub ? ' (' + t('poolSumWarnSub') + ')' : ''} (${t('payPctWarnItem')} ${formatMoney(o.v)}, ${t('poolSumWarnPool')} ${formatMoney(o.avail)})`).join('; ') + '.';
-  box.style.display = 'block';
-  return over;
-}
-
-// Ручная сумма распределения (столбец «Сумма распределения по % (ручн.)» или её
-// субсидируемый вариант) в этом месяце больше начисленного за период вознаграждения.
-// Автоматические способы распределения (равномерно, ближайший платёж и т. д.) и
-// списание остатка на последней дате — не считаются.
-function isManualDistOver(r, idx, params) {
-  const m = monthsState[idx];
-  if (!m || !r || r.lastPct || !(r.distribution > r.interestAccrued + 0.005)) return false;
-  const clientTyped = params.poolMethod === 'manual' && Number(m.weight) > 0;
-  const subTyped = params.subsidyEnabled && params.poolMethodSub === 'manual' && Number(m.weightSub) > 0;
-  return clientTyped || subTyped;
-}
-
-function updateDistOverWarning() {
-  const box = document.getElementById('dist-warning');
-  const over = lastResult ? lastResult.rows.filter((r, idx) => isManualDistOver(r, idx, lastResult.params)) : [];
-  if (box) {
-    if (!over.length) { box.style.display = 'none'; box.textContent = ''; }
-    else {
-      box.textContent = t('distOverTitle') + ' ' + over.map(r =>
-        `${formatDateRu(r.date)} (${t('distOverDist')} ${formatMoney(r.distribution)}, ${t('distOverAccrued')} ${formatMoney(r.interestAccrued)})`).join('; ') + '.';
-      box.style.display = 'block';
-    }
-  }
-  return over;
-}
-
-// Обновляет оба красных уведомления; возвращает тексты всплывающих сообщений.
+// Обновляет красное уведомление по «Платёж по % (ручн.)»; возвращает его данные и текст всплывающего сообщения.
 function refreshManualWarnings() {
   const pay = updatePayPctWarning();
-  const pool = updatePoolWarning();
-  return { pay, pool, messages: [pay.length ? t('payPctToast') : null, pool.length ? t('poolSumToast') : null].filter(Boolean) };
+  return { pay, messages: pay.length ? [t('payPctToast')] : [] };
 }
 
 // Всплывающее уведомление (закрывается само через несколько секунд или по клику).
@@ -2580,14 +2498,12 @@ function attachWeightODInputBehavior(inp) {
     const pos = Math.max(0, formatted.length - cursorFromEnd);
     inp.setSelectionRange(pos, pos);
     monthsState[+inp.dataset.idx][inp.dataset.field] = num;
-    if (inp.dataset.field === 'payPct' || inp.dataset.field === 'weight' || inp.dataset.field === 'weightSub') refreshManualWarnings();
+    if (inp.dataset.field === 'payPct') refreshManualWarnings();
   });
   inp.addEventListener('keydown', focusNextRowOnEnter);
-  if (inp.dataset.field === 'payPct' || inp.dataset.field === 'weight' || inp.dataset.field === 'weightSub') {
+  if (inp.dataset.field === 'payPct') {
     inp.addEventListener('change', () => {
-      const w = refreshManualWarnings();
-      const mine = inp.dataset.field === 'payPct' ? w.pay : w.pool.filter(o => o.field === inp.dataset.field);
-      if (mine.some(o => o.idx === +inp.dataset.idx)) showToast(inp.dataset.field === 'payPct' ? t('payPctToast') : t('poolSumToast'));
+      if (refreshManualWarnings().pay.some(o => o.idx === +inp.dataset.idx)) showToast(t('payPctToast'));
     });
   }
 }
@@ -2656,7 +2572,7 @@ function renderResults(result) {
 
   const tbody = document.getElementById('schedule-tbody');
   tbody.innerHTML = '';
-  for (const [rowIdx, r] of result.rows.entries()) {
+  for (const r of result.rows) {
     const tr = document.createElement('tr');
     if (r.graceOD || r.gracePct) tr.classList.add('grace-row');
     const dateHtml = formatDateRu(r.date) + (r.adjusted
@@ -2671,7 +2587,7 @@ function renderResults(result) {
       <td class="subsidy-col">${formatMoney(r.subsidyPart)}</td>
       <td class="subsidy-col">${formatMoney(r.clientPart)}</td>
       <td>${formatMoney(r.poolAdd)}</td>
-      <td class="${isManualDistOver(r, rowIdx, result.params) ? 'cell-over' : ''}">${formatMoney(r.distribution)}</td>
+      <td>${formatMoney(r.distribution)}</td>
       <td>${formatMoney(r.totalPayment)}</td>
       <td>${formatMoney(r.balanceEnd)}</td>
     `;
@@ -2687,7 +2603,6 @@ function doCalculate() {
     showError(result.error);
     lastResult = null;
     refreshManualWarnings();
-    updateDistOverWarning();
     document.getElementById('btn-export').disabled = true;
     document.getElementById('gesv-value').textContent = '—';
     document.querySelectorAll('.tile').forEach(tile => { tile.classList.remove('ok', 'bad'); tile.querySelector('.tile-value').textContent = '—'; });
@@ -2706,8 +2621,6 @@ function doCalculate() {
   document.getElementById('btn-export').disabled = false;
   renderResults(result);
   const warnings = refreshManualWarnings();
-  const distOver = updateDistOverWarning();
-  if (distOver.length) warnings.messages.push(t('distOverToast'));
   if (warnings.messages.length) showToast(warnings.messages.join('\n'));
 }
 
