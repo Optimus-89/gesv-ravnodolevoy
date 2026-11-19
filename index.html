@@ -1414,6 +1414,11 @@ function generateSchedule(p) {
     weightSub.push(Number(m.weightSub) || 0);
     weightOD.push(Number(m.weightOD) || 0);
   }
+  // Последний платёж по сроку всегда обязателен: льгота по ОД и по % на
+  // последнем месяце игнорируется, чтобы там стоял платёж (остаток ОД и
+  // накопленный пул % закрываются в нём).
+  graceOD[M] = false;
+  gracePct[M] = false;
 
   // Суффиксные суммы: сколько ещё не-льготных due-дат осталось, включая текущую
   const remainingOD = new Array(M + 2).fill(0);
