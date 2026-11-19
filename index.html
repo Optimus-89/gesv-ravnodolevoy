@@ -461,7 +461,7 @@
             <option value="manual" data-i18n="poolManual">Ручное распределение</option>
           </select>
           <div class="field-note" id="pool-note-untilNextGrace" style="display:none;" data-i18n="poolNoteUntilNextGrace">«До следующего льготного периода»: пул равномерно распределяется на платежи до начала следующей льготы по %, а не до конца срока.</div>
-          <div class="field-note" id="pool-note-manual" style="display:none;" data-i18n="poolNoteManual">«Ручное распределение»: накопленный пул платится только по суммам, заданным в столбце «Сумма распределения по % (ручн.)» таблицы «Льготы по месяцам», а весь остаток — на последней дате по %.</div>
+          <div class="field-note" id="pool-note-manual" style="display:none;" data-i18n="poolNoteManual">«Ручное распределение»: сумма распределения — сумма в денежном выражении, которая списывается из пула на эту дату (не доля в процентах). Если указанная сумма больше накопленного пула — списывается весь остаток пула.</div>
         </div>
       </details>
     </div>
@@ -637,7 +637,6 @@
             <button class="btn-secondary" id="btn-apply-pool-spread" type="button" data-i18n="applyBtn">Применить</button>
           </div>
           <div class="field-note" data-i18n="poolSpreadNote">После «Рассчитать» укажите число месяцев и нажмите «Применить»: проценты, накопленные за каждый льготный период (ЛП) в графике, равномерно распределятся на указанное число месяцев после него — подставится в «Сумма распределения по % (ручн.)», способ распределения переключится на «Ручное распределение».</div>
-          <div class="field-note" data-i18n="weightPctNote">«Сумма распределения по % (ручн.)» — сумма, которая списывается из накопленного пула в этом месяце сверх начисленных процентов (вне льготы по %), не больше остатка пула. Если пула нет, ничего не добавляется. Работает при любом способе распределения; в месяцах без суммы действует выбранный способ.</div>
           <div class="btn-row">
             <button class="btn-secondary" id="btn-reset-grace" type="button" data-i18n="resetBtn">Сбросить</button>
           </div>
@@ -704,7 +703,7 @@ const I18N = {
     poolUntilNextGrace: 'До следующего льготного периода',
     poolManual: 'Ручное распределение',
     poolNoteUntilNextGrace: '«До следующего льготного периода»: пул равномерно распределяется на платежи до начала следующей льготы по %, а не до конца срока.',
-    poolNoteManual: '«Ручное распределение»: накопленный пул платится только по суммам, заданным в столбце «Сумма распределения по % (ручн.)» таблицы «Льготы по месяцам», а весь остаток — на последней дате по %.',
+    poolNoteManual: '«Ручное распределение»: сумма распределения — сумма в денежном выражении, которая списывается из пула на эту дату (не доля в процентах). Если указанная сумма больше накопленного пула — списывается весь остаток пула.',
     seasonalGraceHeading: 'Льготы по календарным месяцам',
     monthColHeader: 'Месяц',
     graceOdColHeader: 'Льгота ОД',
@@ -762,7 +761,6 @@ const I18N = {
     monthShortColHeader: 'Мес.',
     weightOdColHeader: 'Сумма распределения по ОД (ручн.)',
     weightPctColHeader: 'Сумма распределения по % (ручн.)',
-    weightPctNote: '«Сумма распределения по % (ручн.)» — сумма, которая списывается из накопленного пула в этом месяце сверх начисленных процентов (вне льготы по %), не больше остатка пула. Если пула нет, ничего не добавляется. Работает при любом способе распределения; в месяцах без суммы действует выбранный способ.',
     poolSpreadLabel: 'Распределить % за ЛП на, мес.',
     applyBtn: 'Применить',
     poolSpreadNote: 'После «Рассчитать» укажите число месяцев и нажмите «Применить»: проценты, накопленные за каждый льготный период (ЛП) в графике, равномерно распределятся на указанное число месяцев после него — подставится в «Сумма распределения по % (ручн.)», способ распределения переключится на «Ручное распределение».',
@@ -865,7 +863,7 @@ const I18N = {
     poolUntilNextGrace: 'Келесі жеңілдік кезеңіне дейін',
     poolManual: 'Қолмен бөлу',
     poolNoteUntilNextGrace: '«Келесі жеңілдік кезеңіне дейін»: пул сыйақы бойынша келесі жеңілдік басталғанға дейінгі төлемдерге тең бөлінеді, мерзім соңына дейін емес.',
-    poolNoteManual: '«Қолмен бөлу»: жинақталған пул тек «Айлар бойынша жеңілдіктер» кестесіндегі «Сыйақыны бөлу сомасы (қолмен)» бағанында көрсетілген сомалар бойынша төленеді, ал бүкіл қалдық — сыйақы бойынша соңғы күні.',
+    poolNoteManual: '«Қолмен бөлу»: бөлу сомасы — осы күнге пулдан есептен шығарылатын ақшалай сома (пайыздық үлес емес). Көрсетілген сома жинақталған пулдан асып кетсе — пулдың бүкіл қалдығы есептен шығарылады.',
     seasonalGraceHeading: 'Күнтізбелік айлар бойынша жеңілдіктер',
     monthColHeader: 'Ай',
     graceOdColHeader: 'НБ жеңілдігі',
@@ -923,7 +921,6 @@ const I18N = {
     monthShortColHeader: 'Ай',
     weightOdColHeader: 'НБ бөлу сомасы (қолмен)',
     weightPctColHeader: 'Сыйақыны бөлу сомасы (қолмен)',
-    weightPctNote: '«Сыйақыны бөлу сомасы (қолмен)» — осы айда есептелген сыйақыдан тыс жинақталған пулдан есептен шығарылатын сома (сыйақы бойынша жеңілдіктен тыс), пул қалдығынан аспайды. Пул болмаса, ештеңе қосылмайды. Кез келген бөлу тәсілінде жұмыс істейді; сома көрсетілмеген айларда таңдалған тәсіл қолданылады.',
     poolSpreadLabel: 'ЖК бойынша сыйақыны бөлу, ай',
     applyBtn: 'Қолдану',
     poolSpreadNote: '«Есептеу» түймесін басқаннан кейін ай санын көрсетіп, «Қолдану» түймесін басыңыз: кестедегі әрбір жеңілдік кезеңі (ЖК) бойынша жинақталған сыйақы одан кейінгі көрсетілген ай санына тең бөлінеді — «Сыйақыны бөлу сомасы (қолмен)» өрісіне қойылады, бөлу тәсілі «Қолмен бөлу» болып ауысады.',
@@ -1456,53 +1453,32 @@ function generateSchedule(p) {
 
     const poolStart = state.pool;
     const poolSubStart = state.poolSub || 0;
-    const accSub = acc.sub;
-    const accClient = interestAccrued - accSub;
-    const last = remainingPct[i] === 1;
+    const poolAdd = deferred ? interestAccrued : 0;
 
     // Пул делится на две части со своими способами распределения: клиентская
     // часть — по основному способу, субсидируемая — по способу из блока
     // субсидирования (при выключенном субсидировании она нулевая).
-    const distributeBy = (method, pool) => {
+    const distributeBy = (method, pool, w) => {
       if (method === 'nearest') return pool;
       if (method === 'all') return remainingPct[i] > 0 ? pool / remainingPct[i] : 0;
       if (method === 'untilNextGrace') return remainingPctLocal[i] > 0 ? pool / remainingPctLocal[i] : 0;
-      // «Ручное»: пул платится только по суммам из таблицы (см. payPart) и
-      // целиком — на последней дате по %.
-      if (method === 'manual') return last ? pool : 0;
+      if (method === 'manual') return remainingPct[i] === 1 ? pool : Math.min(pool, w);
       return 0;
     };
-    // Проценты части (клиентской/субсидируемой) за период на дату уплаты:
-    // начисленные проценты платятся всегда, сверх них — распределение пула.
-    // Если в таблице задана сумма распределения (w > 0), из пула списывается она
-    // (не больше остатка пула; без пула ничего не добавляется), иначе — доля по
-    // выбранному способу. На последней дате по % списывается весь пул.
-    const payPart = (accrued, pool, method, w) => {
-      const dist = (!last && w > 0) ? Math.min(w, pool) : distributeBy(method, pool);
-      return { paidAcc: accrued, dist };
-    };
-
-    let interestPaid = 0, distribution = 0, poolAdd = 0;
-    let paidSub = 0, distSub = 0, subShort = 0;
-    if (deferred) {
-      poolAdd = interestAccrued;
-      subShort = accSub;
-    } else {
-      const client = payPart(accClient, Math.max(0, poolStart - poolSubStart), p.poolMethod, weight[i]);
-      const sub = payPart(accSub, Math.max(0, poolSubStart), p.poolMethodSub, weightSub[i]);
-      interestPaid = client.paidAcc + sub.paidAcc;
-      distribution = client.dist + sub.dist;
-      paidSub = sub.paidAcc;
-      distSub = sub.dist;
-      subShort = accSub - sub.paidAcc;
-      poolAdd = (accClient - client.paidAcc) + subShort;
+    let interestPaid = 0, distribution = 0, paidSub = 0, distSub = 0;
+    if (!deferred) {
+      interestPaid = interestAccrued;
+      paidSub = acc.sub;
+      const distClient = distributeBy(p.poolMethod, poolStart - poolSubStart, weight[i]);
+      distSub = distributeBy(p.poolMethodSub, poolSubStart, weightSub[i]);
+      distribution = distClient + distSub;
     }
     const poolEnd = poolStart + poolAdd - distribution;
     state.pool = poolEnd;
-    state.poolSub = poolSubStart + subShort - distSub;
+    state.poolSub = poolSubStart + (deferred ? acc.sub : 0) - distSub;
 
     return {
-      interestAccrued, interestAccruedSub: accSub, interestPaid, poolAdd, distribution, poolEnd,
+      interestAccrued, interestPaid, poolAdd, distribution, poolEnd,
       totalInterest: interestPaid + distribution,
       subsidyPart: paidSub + distSub,
       poolEndSub: state.poolSub,
@@ -1557,7 +1533,7 @@ function generateSchedule(p) {
       needsResolve = false;
     }
 
-    const { interestAccrued, interestAccruedSub, interestPaid, poolAdd, distribution, poolEnd, totalInterest, subsidyPart, poolEndSub } = stepInterest(state, i, balanceStart);
+    const { interestAccrued, interestPaid, poolAdd, distribution, poolEnd, totalInterest, subsidyPart, poolEndSub } = stepInterest(state, i, balanceStart);
     const clientPart = totalInterest - subsidyPart;
 
     // Вес ОД — сумма (не доля), направляемая на погашение в этом месяце (0 =
@@ -1593,7 +1569,7 @@ function generateSchedule(p) {
     rows.push({
       i, date: monthDates[i], adjusted: wasAdjusted[i],
       dueOD: dueOD[i], duePct: duePct[i], graceOD: graceOD[i], gracePct: gracePct[i],
-      balanceStart, principal, interestAccrued, interestAccruedSub, totalInterest, subsidyPart, clientPart, poolAdd, distribution,
+      balanceStart, principal, interestAccrued, totalInterest, subsidyPart, clientPart, poolAdd, distribution,
       poolEnd, poolEndSub, bucketEnd: 0, fee, totalPayment, balanceEnd,
     });
 
