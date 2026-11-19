@@ -252,7 +252,7 @@
   .weight-input { width: 60px; padding: 3px 4px; text-align: center; }
   .weight-input.over-accrued { border-color: #c0392b; color: #c0392b; background: #fdecea; }
   .warn-red { color: #c0392b; font-weight: 600; font-size: 12px; margin: 6px 0; }
-  .toast { position: fixed; top: 16px; right: 16px; z-index: 1000; max-width: 340px; padding: 12px 16px; border-radius: 8px;
+  .toast { white-space: pre-line; position: fixed; top: 16px; right: 16px; z-index: 1000; max-width: 340px; padding: 12px 16px; border-radius: 8px;
     background: #c0392b; color: #fff; font-size: 14px; font-weight: 600; box-shadow: 0 6px 20px rgba(0,0,0,.25);
     cursor: pointer; opacity: 0; transform: translateY(-8px); transition: opacity .2s, transform .2s; pointer-events: none; }
   .toast.visible { opacity: 1; transform: none; pointer-events: auto; }
@@ -638,6 +638,7 @@
             </table>
           </div>
           <div class="warn-red" id="paypct-warning" style="display:none;"></div>
+          <div class="warn-red" id="poolsum-warning" style="display:none;"></div>
           <div class="field-note" data-i18n="payPctNote">«Платёж по % (ручн.)» — сумма процентов, которая платится в этом месяце (вне льготы по %): в графике показывается именно она. Начисленное сверх указанной суммы уходит в пул и распределяется выбранным способом в следующие месяцы; если сумма больше начисленного, разница берётся из накопленного пула (не больше его остатка). В этом месяце распределение пула по способу не применяется. При субсидировании сумма делится между субсидируемой и клиентской частью пропорционально. На последней дате по % платятся все проценты и весь пул.</div>
           <div class="inline-field">
             <label for="f-pool-spread-months" data-i18n="poolSpreadLabel">Распределить % за ЛП на, мес.</label>
@@ -739,6 +740,10 @@ const I18N = {
     payPctColHeader: 'Платёж по % (ручн.)',
     payPctWarnTitle: 'Указанная сумма в столбце «Платёж по % (ручн.)» больше начисленных процентов:',
     payPctToast: 'Указанная сумма превышает сумму начисленного вознаграждения',
+    poolSumToast: 'Указанная сумма превышает сумму накопленного вознаграждения (пула)',
+    poolSumWarnTitle: 'Указанная сумма в столбце «Сумма распределения по %» больше накопленного пула процентов:',
+    poolSumWarnPool: 'в пуле',
+    poolSumWarnSub: 'субсид.',
     payPctWarnItem: 'указано',
     payPctWarnAccrued: 'начислено',
     payPctNote: '«Платёж по % (ручн.)» — сумма процентов, которая платится в этом месяце (вне льготы по %): в графике показывается именно она. Начисленное сверх указанной суммы уходит в пул и распределяется выбранным способом в следующие месяцы; если сумма больше начисленного, разница берётся из накопленного пула (не больше его остатка). В этом месяце распределение пула по способу не применяется. При субсидировании сумма делится между субсидируемой и клиентской частью пропорционально. На последней дате по % платятся все проценты и весь пул.',
@@ -905,6 +910,10 @@ const I18N = {
     payPctColHeader: 'Сыйақы төлемі (қолмен)',
     payPctWarnTitle: '«Сыйақы төлемі (қолмен)» бағанында көрсетілген сома есептелген сыйақыдан көп:',
     payPctToast: 'Көрсетілген сома есептелген сыйақы сомасынан асады',
+    poolSumToast: 'Көрсетілген сома жинақталған сыйақы (пул) сомасынан асады',
+    poolSumWarnTitle: '«Сыйақыны бөлу сомасы» бағанында көрсетілген сома жинақталған сыйақы пулынан көп:',
+    poolSumWarnPool: 'пулда',
+    poolSumWarnSub: 'субсид.',
     payPctWarnItem: 'көрсетілген',
     payPctWarnAccrued: 'есептелген',
     payPctNote: '«Сыйақы төлемі (қолмен)» — осы айда төленетін сыйақы сомасы (сыйақы бойынша жеңілдіктен тыс): графикте дәл сол көрсетіледі. Көрсетілген сомадан артық есептелген бөлік пулға түсіп, келесі айларда таңдалған тәсілмен бөлінеді; егер сома есептелгеннен көп болса, айырма жинақталған пулдан алынады (оның қалдығынан аспайды). Бұл айда пулды бөлу тәсілі қолданылмайды. Субсидиялау кезінде сома пропорционал бөлінеді. Сыйақы бойынша соңғы күні барлық сыйақы мен пулдың бүкіл қалдығы төленеді.',
@@ -1524,6 +1533,9 @@ function generateSchedule(p) {
       totalInterest: interestPaid + distribution,
       subsidyPart: paidSub + distSub,
       poolEndSub: state.poolSub,
+      poolStartClient: Math.max(0, poolStart - poolSubStart),
+      poolStartSub: Math.max(0, poolSubStart),
+      lastPct: remainingPct[i] === 1,
     };
   }
 
@@ -1575,7 +1587,7 @@ function generateSchedule(p) {
       needsResolve = false;
     }
 
-    const { interestAccrued, interestPaid, poolAdd, distribution, poolEnd, totalInterest, subsidyPart, poolEndSub } = stepInterest(state, i, balanceStart);
+    const { interestAccrued, interestPaid, poolAdd, distribution, poolEnd, totalInterest, subsidyPart, poolEndSub, poolStartClient, poolStartSub, lastPct } = stepInterest(state, i, balanceStart);
     const clientPart = totalInterest - subsidyPart;
 
     // Вес ОД — сумма (не доля), направляемая на погашение в этом месяце (0 =
@@ -1612,7 +1624,7 @@ function generateSchedule(p) {
       i, date: monthDates[i], adjusted: wasAdjusted[i],
       dueOD: dueOD[i], duePct: duePct[i], graceOD: graceOD[i], gracePct: gracePct[i],
       balanceStart, principal, interestAccrued, totalInterest, subsidyPart, clientPart, poolAdd, distribution,
-      poolEnd, poolEndSub, bucketEnd: 0, fee, totalPayment, balanceEnd,
+      poolEnd, poolEndSub, poolStartClient, poolStartSub, lastPct, bucketEnd: 0, fee, totalPayment, balanceEnd,
     });
 
     balance = balanceEnd;
@@ -1813,9 +1825,9 @@ function renderGraceTable() {
   });
   tbody.querySelectorAll('input.weight-input[data-field="weightOD"]').forEach(attachWeightODInputBehavior);
   tbody.querySelectorAll('input.weight-input[data-field="payPct"]').forEach(attachWeightODInputBehavior);
-  updatePayPctWarning();
   tbody.querySelectorAll('input.weight-input[data-field="weight"]').forEach(attachWeightODInputBehavior);
   tbody.querySelectorAll('input.weight-input[data-field="weightSub"]').forEach(attachWeightODInputBehavior);
+  refreshManualWarnings();
 }
 
 // Разово проставляет/снимает льготу (ОД или %) на всех месяцах графика, чьи
@@ -1890,6 +1902,42 @@ function updatePayPctWarning() {
   return over;
 }
 
+// То же для «Сумма распределения по % (ручн.)» (и субсидируемой части): сумма
+// больше накопленного пула на начало месяца. Работает при ручном способе
+// распределения; на последней дате по % списывается весь пул, сумма не нужна.
+function updatePoolWarning() {
+  const box = document.getElementById('poolsum-warning');
+  if (!box) return [];
+  const over = [];
+  if (lastResult) {
+    const params = lastResult.params;
+    const clientManual = params.poolMethod === 'manual';
+    const subManual = params.subsidyEnabled && params.poolMethodSub === 'manual';
+    lastResult.rows.forEach((r, idx) => {
+      const m = monthsState[idx];
+      if (!m || !r.duePct || r.gracePct || r.lastPct) return;
+      const v = Number(m.weight) || 0, vs = Number(m.weightSub) || 0;
+      if (clientManual && v > 0 && v > r.poolStartClient + 0.005) over.push({ idx, field: 'weight', v, avail: r.poolStartClient, sub: false });
+      if (subManual && vs > 0 && vs > r.poolStartSub + 0.005) over.push({ idx, field: 'weightSub', v: vs, avail: r.poolStartSub, sub: true });
+    });
+  }
+  document.querySelectorAll('#grace-tbody input[data-field="weight"], #grace-tbody input[data-field="weightSub"]').forEach(inp => {
+    inp.classList.toggle('over-accrued', over.some(o => o.idx === +inp.dataset.idx && o.field === inp.dataset.field));
+  });
+  if (!over.length) { box.style.display = 'none'; box.textContent = ''; return over; }
+  box.textContent = t('poolSumWarnTitle') + ' ' + over.map(o =>
+    `${graceMonthLabel(o.idx)}${o.sub ? ' (' + t('poolSumWarnSub') + ')' : ''} (${t('payPctWarnItem')} ${formatMoney(o.v)}, ${t('poolSumWarnPool')} ${formatMoney(o.avail)})`).join('; ') + '.';
+  box.style.display = 'block';
+  return over;
+}
+
+// Обновляет оба красных уведомления; возвращает тексты всплывающих сообщений.
+function refreshManualWarnings() {
+  const pay = updatePayPctWarning();
+  const pool = updatePoolWarning();
+  return { pay, pool, messages: [pay.length ? t('payPctToast') : null, pool.length ? t('poolSumToast') : null].filter(Boolean) };
+}
+
 // Всплывающее уведомление (закрывается само через несколько секунд или по клику).
 let toastTimer = null;
 function showToast(msg) {
@@ -1945,12 +1993,14 @@ function attachWeightODInputBehavior(inp) {
     const pos = Math.max(0, formatted.length - cursorFromEnd);
     inp.setSelectionRange(pos, pos);
     monthsState[+inp.dataset.idx][inp.dataset.field] = num;
-    if (inp.dataset.field === 'payPct') updatePayPctWarning();
+    if (inp.dataset.field === 'payPct' || inp.dataset.field === 'weight' || inp.dataset.field === 'weightSub') refreshManualWarnings();
   });
   inp.addEventListener('keydown', focusNextRowOnEnter);
-  if (inp.dataset.field === 'payPct') {
+  if (inp.dataset.field === 'payPct' || inp.dataset.field === 'weight' || inp.dataset.field === 'weightSub') {
     inp.addEventListener('change', () => {
-      if (updatePayPctWarning().some(o => o.idx === +inp.dataset.idx)) showToast(t('payPctToast'));
+      const w = refreshManualWarnings();
+      const mine = inp.dataset.field === 'payPct' ? w.pay : w.pool.filter(o => o.field === inp.dataset.field);
+      if (mine.some(o => o.idx === +inp.dataset.idx)) showToast(inp.dataset.field === 'payPct' ? t('payPctToast') : t('poolSumToast'));
     });
   }
 }
@@ -2049,7 +2099,7 @@ function doCalculate() {
   if (result.error) {
     showError(result.error);
     lastResult = null;
-    updatePayPctWarning();
+    refreshManualWarnings();
     document.getElementById('btn-export').disabled = true;
     document.getElementById('gesv-value').textContent = '—';
     document.querySelectorAll('.tile').forEach(tile => { tile.classList.remove('ok', 'bad'); tile.querySelector('.tile-value').textContent = '—'; });
@@ -2067,7 +2117,8 @@ function doCalculate() {
   lastResult = result;
   document.getElementById('btn-export').disabled = false;
   renderResults(result);
-  if (updatePayPctWarning().length) showToast(t('payPctToast'));
+  const warnings = refreshManualWarnings();
+  if (warnings.messages.length) showToast(warnings.messages.join('\n'));
 }
 
 function escapeXml(s) {
