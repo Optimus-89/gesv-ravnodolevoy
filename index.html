@@ -250,6 +250,8 @@
   .grace-table-wrap thead th:first-child { white-space: nowrap; }
   input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; }
   .weight-input { width: 60px; padding: 3px 4px; text-align: center; }
+  .weight-input.over-accrued { border-color: #c0392b; color: #c0392b; background: #fdecea; }
+  .warn-red { color: #c0392b; font-weight: 600; font-size: 12px; margin: 6px 0; }
   tbody tr:nth-child(even) td { background: #f7f9fc; }
 
   .grace-table-wrap table { table-layout: fixed; }
@@ -631,6 +633,7 @@
               <tbody id="grace-tbody"></tbody>
             </table>
           </div>
+          <div class="warn-red" id="paypct-warning" style="display:none;"></div>
           <div class="field-note" data-i18n="payPctNote">«Платёж по % (ручн.)» — сумма процентов, которая платится в этом месяце (вне льготы по %): в графике показывается именно она. Начисленное сверх указанной суммы уходит в пул и распределяется выбранным способом в следующие месяцы; если сумма больше начисленного, разница берётся из накопленного пула (не больше его остатка). В этом месяце распределение пула по способу не применяется. При субсидировании сумма делится между субсидируемой и клиентской частью пропорционально. На последней дате по % платятся все проценты и весь пул.</div>
           <div class="inline-field">
             <label for="f-pool-spread-months" data-i18n="poolSpreadLabel">Распределить % за ЛП на, мес.</label>
@@ -730,6 +733,9 @@ const I18N = {
     poolNoteManualSub: 'При ручном распределении суммы для субсидируемой части задаются в столбце «Сумма распределения по % субсид. (ручн.)» таблицы «Льготы по месяцам».',
     weightPctSubColHeader: 'Сумма распределения по % субсид. (ручн.)',
     payPctColHeader: 'Платёж по % (ручн.)',
+    payPctWarnTitle: 'Указанная сумма в столбце «Платёж по % (ручн.)» больше начисленных процентов:',
+    payPctWarnItem: 'указано',
+    payPctWarnAccrued: 'начислено',
     payPctNote: '«Платёж по % (ручн.)» — сумма процентов, которая платится в этом месяце (вне льготы по %): в графике показывается именно она. Начисленное сверх указанной суммы уходит в пул и распределяется выбранным способом в следующие месяцы; если сумма больше начисленного, разница берётся из накопленного пула (не больше его остатка). В этом месяце распределение пула по способу не применяется. При субсидировании сумма делится между субсидируемой и клиентской частью пропорционально. На последней дате по % платятся все проценты и весь пул.',
     excel_poolMethodSubLabel: 'Способ распределения пула % (субсидируемая часть)',
     colSubsidyPart: 'Субсидируемая часть %',
@@ -892,6 +898,9 @@ const I18N = {
     poolNoteManualSub: 'Қолмен бөлген кезде субсидияланатын бөлік сомалары «Айлар бойынша жеңілдіктер» кестесінің «Субсид. сыйақыны бөлу сомасы (қолмен)» бағанында беріледі.',
     weightPctSubColHeader: 'Субсид. сыйақыны бөлу сомасы (қолмен)',
     payPctColHeader: 'Сыйақы төлемі (қолмен)',
+    payPctWarnTitle: '«Сыйақы төлемі (қолмен)» бағанында көрсетілген сома есептелген сыйақыдан көп:',
+    payPctWarnItem: 'көрсетілген',
+    payPctWarnAccrued: 'есептелген',
     payPctNote: '«Сыйақы төлемі (қолмен)» — осы айда төленетін сыйақы сомасы (сыйақы бойынша жеңілдіктен тыс): графикте дәл сол көрсетіледі. Көрсетілген сомадан артық есептелген бөлік пулға түсіп, келесі айларда таңдалған тәсілмен бөлінеді; егер сома есептелгеннен көп болса, айырма жинақталған пулдан алынады (оның қалдығынан аспайды). Бұл айда пулды бөлу тәсілі қолданылмайды. Субсидиялау кезінде сома пропорционал бөлінеді. Сыйақы бойынша соңғы күні барлық сыйақы мен пулдың бүкіл қалдығы төленеді.',
     excel_poolMethodSubLabel: 'Сыйақы пулын бөлу тәсілі (субсидияланатын бөлік)',
     colSubsidyPart: 'Субсидияланатын сыйақы бөлігі',
@@ -1798,6 +1807,7 @@ function renderGraceTable() {
   });
   tbody.querySelectorAll('input.weight-input[data-field="weightOD"]').forEach(attachWeightODInputBehavior);
   tbody.querySelectorAll('input.weight-input[data-field="payPct"]').forEach(attachWeightODInputBehavior);
+  updatePayPctWarning();
   tbody.querySelectorAll('input.weight-input[data-field="weight"]').forEach(attachWeightODInputBehavior);
   tbody.querySelectorAll('input.weight-input[data-field="weightSub"]').forEach(attachWeightODInputBehavior);
 }
@@ -1851,6 +1861,28 @@ function renderSeasonalGraceTable() {
   });
 }
 
+// Красное уведомление, если в «Платёж по % (ручн.)» указано больше начисленных
+// процентов этого месяца (по последнему расчёту); такие поля подсвечиваются.
+function updatePayPctWarning() {
+  const box = document.getElementById('paypct-warning');
+  if (!box) return;
+  const over = [];
+  if (lastResult) {
+    lastResult.rows.forEach((r, idx) => {
+      const m = monthsState[idx];
+      const v = m ? Number(m.payPct) || 0 : 0;
+      if (v > 0 && r.duePct && !r.gracePct && v > r.interestAccrued + 0.005) over.push({ idx, v, acc: r.interestAccrued });
+    });
+  }
+  document.querySelectorAll('#grace-tbody input[data-field="payPct"]').forEach(inp => {
+    inp.classList.toggle('over-accrued', over.some(o => o.idx === +inp.dataset.idx));
+  });
+  if (!over.length) { box.style.display = 'none'; box.textContent = ''; return; }
+  box.textContent = t('payPctWarnTitle') + ' ' + over.map(o =>
+    `${graceMonthLabel(o.idx)} (${t('payPctWarnItem')} ${formatMoney(o.v)}, ${t('payPctWarnAccrued')} ${formatMoney(o.acc)})`).join('; ') + '.';
+  box.style.display = 'block';
+}
+
 // Enter уводит фокус на ту же графу в следующей строке — удобно вводить
 // значения подряд, не отрывая рук от клавиатуры.
 function focusNextRowOnEnter(e) {
@@ -1887,6 +1919,7 @@ function attachWeightODInputBehavior(inp) {
     const pos = Math.max(0, formatted.length - cursorFromEnd);
     inp.setSelectionRange(pos, pos);
     monthsState[+inp.dataset.idx][inp.dataset.field] = num;
+    if (inp.dataset.field === 'payPct') updatePayPctWarning();
   });
   inp.addEventListener('keydown', focusNextRowOnEnter);
 }
@@ -1985,6 +2018,7 @@ function doCalculate() {
   if (result.error) {
     showError(result.error);
     lastResult = null;
+    updatePayPctWarning();
     document.getElementById('btn-export').disabled = true;
     document.getElementById('gesv-value').textContent = '—';
     document.querySelectorAll('.tile').forEach(tile => { tile.classList.remove('ok', 'bad'); tile.querySelector('.tile-value').textContent = '—'; });
@@ -2002,6 +2036,7 @@ function doCalculate() {
   lastResult = result;
   document.getElementById('btn-export').disabled = false;
   renderResults(result);
+  updatePayPctWarning();
 }
 
 function escapeXml(s) {
