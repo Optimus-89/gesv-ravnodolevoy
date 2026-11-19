@@ -623,14 +623,15 @@
           <div class="grace-table-wrap">
             <table id="grace-table">
               <colgroup>
-                <col style="width:64px"><col style="width:64px"><col><col style="width:64px"><col><col class="subsidy-col">
+                <col style="width:64px"><col style="width:64px"><col><col style="width:64px"><col><col><col class="subsidy-col">
               </colgroup>
               <thead>
-                <tr><th data-i18n="monthShortColHeader">Мес.</th><th data-i18n="graceOdColHeader">Льгота ОД</th><th data-i18n="weightOdColHeader">Сумма распределения по ОД (ручн.)</th><th data-i18n="gracePctColHeader">Льгота %</th><th data-i18n="weightPctColHeader">Сумма распределения по % (ручн.)</th><th class="subsidy-col" data-i18n="weightPctSubColHeader">Сумма распределения по % субсид. (ручн.)</th></tr>
+                <tr><th data-i18n="monthShortColHeader">Мес.</th><th data-i18n="graceOdColHeader">Льгота ОД</th><th data-i18n="weightOdColHeader">Сумма распределения по ОД (ручн.)</th><th data-i18n="gracePctColHeader">Льгота %</th><th data-i18n="payPctColHeader">Платёж по % (ручн.)</th><th data-i18n="weightPctColHeader">Сумма распределения по % (ручн.)</th><th class="subsidy-col" data-i18n="weightPctSubColHeader">Сумма распределения по % субсид. (ручн.)</th></tr>
               </thead>
               <tbody id="grace-tbody"></tbody>
             </table>
           </div>
+          <div class="field-note" data-i18n="payPctNote">«Платёж по % (ручн.)» — сумма процентов, которая фактически платится в этом месяце (вне льготы по %). Если она меньше начисленных процентов, недоплата уходит в пул и распределяется выбранным способом; больше начисленных не платится (избыток из пула берите через «Сумма распределения по % (ручн.)»). При субсидировании сумма делится между субсидируемой и клиентской частью пропорционально начисленным. На последней дате по % платятся все начисленные проценты.</div>
           <div class="inline-field">
             <label for="f-pool-spread-months" data-i18n="poolSpreadLabel">Распределить % за ЛП на, мес.</label>
             <input type="number" id="f-pool-spread-months" min="1" step="1" placeholder="—">
@@ -728,6 +729,8 @@ const I18N = {
     poolMethodSubLabel: 'Способ распределения пула % (накоплено за льготу) — субсидируемая часть',
     poolNoteManualSub: 'При ручном распределении суммы для субсидируемой части задаются в столбце «Сумма распределения по % субсид. (ручн.)» таблицы «Льготы по месяцам».',
     weightPctSubColHeader: 'Сумма распределения по % субсид. (ручн.)',
+    payPctColHeader: 'Платёж по % (ручн.)',
+    payPctNote: '«Платёж по % (ручн.)» — сумма процентов, которая фактически платится в этом месяце (вне льготы по %). Если она меньше начисленных процентов, недоплата уходит в пул и распределяется выбранным способом; больше начисленных не платится (избыток из пула берите через «Сумма распределения по % (ручн.)»). При субсидировании сумма делится между субсидируемой и клиентской частью пропорционально начисленным. На последней дате по % платятся все начисленные проценты.',
     excel_poolMethodSubLabel: 'Способ распределения пула % (субсидируемая часть)',
     colSubsidyPart: 'Субсидируемая часть %',
     colClientPart: 'Клиентская часть %',
@@ -888,6 +891,8 @@ const I18N = {
     poolMethodSubLabel: '% пулын бөлу тәсілі (жеңілдік бойынша жинақталған) — субсидияланатын бөлік',
     poolNoteManualSub: 'Қолмен бөлген кезде субсидияланатын бөлік сомалары «Айлар бойынша жеңілдіктер» кестесінің «Субсид. сыйақыны бөлу сомасы (қолмен)» бағанында беріледі.',
     weightPctSubColHeader: 'Субсид. сыйақыны бөлу сомасы (қолмен)',
+    payPctColHeader: 'Сыйақы төлемі (қолмен)',
+    payPctNote: '«Сыйақы төлемі (қолмен)» — осы айда нақты төленетін сыйақы сомасы (сыйақы бойынша жеңілдіктен тыс). Егер ол есептелген сыйақыдан аз болса, төленбеген бөлік пулға түсіп, таңдалған тәсілмен бөлінеді; есептелгеннен артық төленбейді (пулдан артығын «Сыйақыны бөлу сомасы (қолмен)» арқылы алыңыз). Субсидиялау кезінде сома субсидияланатын және клиенттік бөлікке есептелгенге пропорционал бөлінеді. Сыйақы бойынша соңғы күні есептелген сыйақының бәрі төленеді.',
     excel_poolMethodSubLabel: 'Сыйақы пулын бөлу тәсілі (субсидияланатын бөлік)',
     colSubsidyPart: 'Субсидияланатын сыйақы бөлігі',
     colClientPart: 'Клиенттік сыйақы бөлігі',
@@ -1294,7 +1299,7 @@ function validateInputs(p) {
   if (!(p.subsidyPct >= 0)) return t('err_subsidy');
   if (p.subsidyStart && p.subsidyEnd && p.subsidyEnd <= p.subsidyStart) return t('err_subsidyDates');
   for (const m of p.months) {
-    if (!(m.weight >= 0) || !(m.weightSub >= 0)) return t('err_weightPct');
+    if (!(m.weight >= 0) || !(m.weightSub >= 0) || (m.payPct != null && !(m.payPct >= 0))) return t('err_weightPct');
     if (!(m.weightOD >= 0)) return t('err_weightOd');
   }
   return null;
@@ -1408,7 +1413,7 @@ function generateSchedule(p) {
 
   // Льготы/веса настраиваются по строкам таблицы «Льготы по месяцам»; для
   // платежей сверх её длины (если платежей больше срока) льгот нет.
-  const graceOD = [false], gracePct = [false], weight = [0], weightSub = [0], weightOD = [0];
+  const graceOD = [false], gracePct = [false], weight = [0], weightSub = [0], weightOD = [0], payPctManual = [0];
   for (let i = 1; i <= M; i++) {
     const m = p.months[i - 1] || {};
     graceOD.push(!!m.graceOD);
@@ -1416,6 +1421,7 @@ function generateSchedule(p) {
     weight.push(Number(m.weight) || 0);
     weightSub.push(Number(m.weightSub) || 0);
     weightOD.push(Number(m.weightOD) || 0);
+    payPctManual.push(Number(m.payPct) || 0);
   }
   // Последний платёж по сроку всегда обязателен: льгота по ОД и по % на
   // последнем месяце игнорируется, чтобы там стоял платёж (остаток ОД и
@@ -1453,7 +1459,15 @@ function generateSchedule(p) {
 
     const poolStart = state.pool;
     const poolSubStart = state.poolSub || 0;
-    const poolAdd = deferred ? interestAccrued : 0;
+    // Ручной платёж по % (столбец «Платёж по % (ручн.)») на дату уплаты вне
+    // льготы: если он меньше начисленных процентов, недоплата уходит в пул и
+    // распределяется выбранным способом; больше начисленных не платится. На
+    // последней дате по % платятся все начисленные проценты.
+    const manualPay = payPctManual[i];
+    const partial = !deferred && remainingPct[i] !== 1 && manualPay > 0 && manualPay < interestAccrued;
+    const paidShare = partial ? manualPay / interestAccrued : 1;
+    const paidAccrued = interestAccrued * paidShare;
+    const poolAdd = deferred ? interestAccrued : (partial ? interestAccrued - paidAccrued : 0);
 
     // Пул делится на две части со своими способами распределения: клиентская
     // часть — по основному способу, субсидируемая — по способу из блока
@@ -1467,15 +1481,15 @@ function generateSchedule(p) {
     };
     let interestPaid = 0, distribution = 0, paidSub = 0, distSub = 0;
     if (!deferred) {
-      interestPaid = interestAccrued;
-      paidSub = acc.sub;
+      interestPaid = paidAccrued;
+      paidSub = acc.sub * paidShare;
       const distClient = distributeBy(p.poolMethod, poolStart - poolSubStart, weight[i]);
       distSub = distributeBy(p.poolMethodSub, poolSubStart, weightSub[i]);
       distribution = distClient + distSub;
     }
     const poolEnd = poolStart + poolAdd - distribution;
     state.pool = poolEnd;
-    state.poolSub = poolSubStart + (deferred ? acc.sub : 0) - distSub;
+    state.poolSub = poolSubStart + (deferred ? acc.sub : (acc.sub - paidSub)) - distSub;
 
     return {
       interestAccrued, interestPaid, poolAdd, distribution, poolEnd,
@@ -1612,7 +1626,7 @@ function rebuildGraceTable(term) {
   const old = monthsState;
   monthsState = [];
   for (let i = 0; i < term; i++) {
-    monthsState.push(old[i] ? old[i] : { graceOD: false, weightOD: 0, gracePct: false, weight: 0, weightSub: 0 });
+    monthsState.push(old[i] ? old[i] : { graceOD: false, weightOD: 0, gracePct: false, payPct: 0, weight: 0, weightSub: 0 });
   }
   renderGraceTable();
 }
@@ -1658,7 +1672,7 @@ function syncFirstPaymentDateFromIssue() {
 // точка сброса и для таблицы "Льготы по месяцам", и для "Льготы по календарным
 // месяцам" (у второго блока нет собственного состояния, кроме тех же полей).
 function resetAllGrace() {
-  monthsState.forEach(m => { m.graceOD = false; m.weightOD = 0; m.gracePct = false; m.weight = 0; m.weightSub = 0; });
+  monthsState.forEach(m => { m.graceOD = false; m.weightOD = 0; m.gracePct = false; m.payPct = 0; m.weight = 0; m.weightSub = 0; });
   renderGraceTable();
   renderSeasonalGraceTable();
 }
@@ -1748,6 +1762,7 @@ function renderGraceTable() {
       <td class="grace-cell"><input type="checkbox" data-idx="${idx}" data-field="graceOD" ${m.graceOD ? 'checked' : ''}></td>
       <td><input type="text" inputmode="numeric" class="weight-input" data-idx="${idx}" data-field="weightOD" value="${(Number(m.weightOD) || 0).toLocaleString('ru-RU')}"></td>
       <td class="grace-cell"><input type="checkbox" data-idx="${idx}" data-field="gracePct" ${m.gracePct ? 'checked' : ''}></td>
+      <td><input type="text" inputmode="numeric" class="weight-input" data-idx="${idx}" data-field="payPct" value="${(Number(m.payPct) || 0).toLocaleString('ru-RU')}"></td>
       <td><input type="text" inputmode="numeric" class="weight-input" data-idx="${idx}" data-field="weight" value="${(Number(m.weight) || 0).toLocaleString('ru-RU')}"></td>
       <td class="subsidy-col"><input type="text" inputmode="numeric" class="weight-input" data-idx="${idx}" data-field="weightSub" value="${(Number(m.weightSub) || 0).toLocaleString('ru-RU')}"></td>
     `;
@@ -1769,6 +1784,7 @@ function renderGraceTable() {
     });
   });
   tbody.querySelectorAll('input.weight-input[data-field="weightOD"]').forEach(attachWeightODInputBehavior);
+  tbody.querySelectorAll('input.weight-input[data-field="payPct"]').forEach(attachWeightODInputBehavior);
   tbody.querySelectorAll('input.weight-input[data-field="weight"]').forEach(attachWeightODInputBehavior);
   tbody.querySelectorAll('input.weight-input[data-field="weightSub"]').forEach(attachWeightODInputBehavior);
 }
