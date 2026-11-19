@@ -1723,6 +1723,7 @@ function syncFirstPaymentDateFromIssue() {
 // точка сброса и для таблицы "Льготы по месяцам", и для "Льготы по календарным
 // месяцам" (у второго блока нет собственного состояния, кроме тех же полей).
 function resetAllGrace() {
+  startGraceApplied.od = 0; startGraceApplied.pct = 0;
   monthsState.forEach(m => { m.graceOD = false; m.weightOD = 0; m.gracePct = false; m.payPct = 0; m.weight = 0; m.weightSub = 0; });
   renderGraceTable();
   renderSeasonalGraceTable();
@@ -1863,10 +1864,18 @@ function applySeasonalGrace(calendarMonth, field, checked) {
 // даты начала займа. Как и «Льготы по календарным месяцам», это одноразовое
 // действие: точечные правки в таблице «Льготы по месяцам» после этого не
 // откатываются автоматически при повторном вводе.
+// Сколько первых месяцев льготы выставило поле «Льгота по ОД/%, мес.» — чтобы при
+// уменьшении числа (было 3, стало 2) лишние месяцы снимались, а отмеченные вручную
+// в других местах не трогались.
+const startGraceApplied = { od: 0, pct: 0 };
+
 function applyStartGrace(field, months) {
   const graceField = field === 'od' ? 'graceOD' : 'gracePct';
   const count = Math.max(0, Math.min(months, monthsState.length));
+  const prev = Math.min(startGraceApplied[field], monthsState.length);
   for (let idx = 0; idx < count; idx++) monthsState[idx][graceField] = true;
+  for (let idx = count; idx < prev; idx++) monthsState[idx][graceField] = false;
+  startGraceApplied[field] = count;
   renderGraceTable();
 }
 
@@ -2492,12 +2501,10 @@ function init() {
   document.getElementById('f-first-payment-date').addEventListener('change', renderGraceTable);
 
   document.getElementById('f-grace-od-start').addEventListener('change', (e) => {
-    const months = parseInt(e.target.value, 10);
-    if (Number.isFinite(months) && months > 0) applyStartGrace('od', months);
+    applyStartGrace('od', Math.max(0, parseInt(e.target.value, 10) || 0));
   });
   document.getElementById('f-grace-pct-start').addEventListener('change', (e) => {
-    const months = parseInt(e.target.value, 10);
-    if (Number.isFinite(months) && months > 0) applyStartGrace('pct', months);
+    applyStartGrace('pct', Math.max(0, parseInt(e.target.value, 10) || 0));
   });
 
 
