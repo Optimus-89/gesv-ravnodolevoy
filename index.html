@@ -250,6 +250,7 @@
   .grace-table-wrap thead th:first-child { white-space: nowrap; }
   input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; }
   .weight-input { width: 60px; padding: 3px 4px; text-align: center; }
+  .weight-input:disabled { background: #eceff3; color: #9aa3ad; cursor: not-allowed; }
   .weight-input.over-accrued { border-color: #c0392b; color: #c0392b; background: #fdecea; }
   .warn-red { color: #c0392b; font-weight: 600; font-size: 12px; margin: 6px 0; }
   td.cell-over { color: #c0392b; font-weight: 700; }
@@ -1813,14 +1814,18 @@ function renderGraceTable() {
       <td><input type="text" inputmode="numeric" class="weight-input" data-idx="${idx}" data-field="weightOD" value="${(Number(m.weightOD) || 0).toLocaleString('ru-RU')}"></td>
       <td class="grace-cell"><input type="checkbox" data-idx="${idx}" data-field="gracePct" ${m.gracePct ? 'checked' : ''}></td>
       <td><input type="text" inputmode="numeric" class="weight-input" data-idx="${idx}" data-field="payPct" value="${(Number(m.payPct) || 0).toLocaleString('ru-RU')}"></td>
-      <td><input type="text" inputmode="numeric" class="weight-input" data-idx="${idx}" data-field="weight" value="${(Number(m.weight) || 0).toLocaleString('ru-RU')}"></td>
-      <td class="subsidy-col"><input type="text" inputmode="numeric" class="weight-input" data-idx="${idx}" data-field="weightSub" value="${(Number(m.weightSub) || 0).toLocaleString('ru-RU')}"></td>
+      <td><input type="text" inputmode="numeric" class="weight-input" data-idx="${idx}" data-field="weight" ${m.gracePct ? 'disabled' : ''} value="${(Number(m.weight) || 0).toLocaleString('ru-RU')}"></td>
+      <td class="subsidy-col"><input type="text" inputmode="numeric" class="weight-input" data-idx="${idx}" data-field="weightSub" ${m.gracePct ? 'disabled' : ''} value="${(Number(m.weightSub) || 0).toLocaleString('ru-RU')}"></td>
     `;
     tbody.appendChild(tr);
   });
   tbody.querySelectorAll('input[type=checkbox]').forEach(cb => {
     cb.addEventListener('change', () => {
       monthsState[+cb.dataset.idx][cb.dataset.field] = cb.checked;
+      // В месяце с льготой по % суммы распределения не вводятся (платежа по % нет).
+      if (cb.dataset.field === 'gracePct') {
+        cb.closest('tr').querySelectorAll('input[data-field="weight"], input[data-field="weightSub"]').forEach(i => { i.disabled = cb.checked; });
+      }
       cb.closest('tr').classList.toggle('grace-row-input', monthsState[+cb.dataset.idx].graceOD || monthsState[+cb.dataset.idx].gracePct);
     });
   });
@@ -1999,7 +2004,14 @@ function focusNextRowOnEnter(e) {
   if (e.key !== 'Enter') return;
   e.preventDefault();
   const inp = e.target;
-  const next = document.querySelector(`input[data-field="${inp.dataset.field}"][data-idx="${+inp.dataset.idx + 1}"]`);
+  // Следующая строка той же графы; поля с льготой (отключены) пропускаем.
+  let idx = +inp.dataset.idx + 1, next = null;
+  for (;;) {
+    const cand = document.querySelector(`input[data-field="${inp.dataset.field}"][data-idx="${idx}"]`);
+    if (!cand) break;
+    if (!cand.disabled) { next = cand; break; }
+    idx++;
+  }
   if (next) { next.focus(); next.select(); }
 }
 
