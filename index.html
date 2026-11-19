@@ -252,6 +252,10 @@
   .weight-input { width: 60px; padding: 3px 4px; text-align: center; }
   .weight-input.over-accrued { border-color: #c0392b; color: #c0392b; background: #fdecea; }
   .warn-red { color: #c0392b; font-weight: 600; font-size: 12px; margin: 6px 0; }
+  .toast { position: fixed; top: 16px; right: 16px; z-index: 1000; max-width: 340px; padding: 12px 16px; border-radius: 8px;
+    background: #c0392b; color: #fff; font-size: 14px; font-weight: 600; box-shadow: 0 6px 20px rgba(0,0,0,.25);
+    cursor: pointer; opacity: 0; transform: translateY(-8px); transition: opacity .2s, transform .2s; pointer-events: none; }
+  .toast.visible { opacity: 1; transform: none; pointer-events: auto; }
   tbody tr:nth-child(even) td { background: #f7f9fc; }
 
   .grace-table-wrap table { table-layout: fixed; }
@@ -734,6 +738,7 @@ const I18N = {
     weightPctSubColHeader: 'Сумма распределения по % субсид. (ручн.)',
     payPctColHeader: 'Платёж по % (ручн.)',
     payPctWarnTitle: 'Указанная сумма в столбце «Платёж по % (ручн.)» больше начисленных процентов:',
+    payPctToast: 'Указанная сумма превышает сумму начисленного вознаграждения',
     payPctWarnItem: 'указано',
     payPctWarnAccrued: 'начислено',
     payPctNote: '«Платёж по % (ручн.)» — сумма процентов, которая платится в этом месяце (вне льготы по %): в графике показывается именно она. Начисленное сверх указанной суммы уходит в пул и распределяется выбранным способом в следующие месяцы; если сумма больше начисленного, разница берётся из накопленного пула (не больше его остатка). В этом месяце распределение пула по способу не применяется. При субсидировании сумма делится между субсидируемой и клиентской частью пропорционально. На последней дате по % платятся все проценты и весь пул.',
@@ -899,6 +904,7 @@ const I18N = {
     weightPctSubColHeader: 'Субсид. сыйақыны бөлу сомасы (қолмен)',
     payPctColHeader: 'Сыйақы төлемі (қолмен)',
     payPctWarnTitle: '«Сыйақы төлемі (қолмен)» бағанында көрсетілген сома есептелген сыйақыдан көп:',
+    payPctToast: 'Көрсетілген сома есептелген сыйақы сомасынан асады',
     payPctWarnItem: 'көрсетілген',
     payPctWarnAccrued: 'есептелген',
     payPctNote: '«Сыйақы төлемі (қолмен)» — осы айда төленетін сыйақы сомасы (сыйақы бойынша жеңілдіктен тыс): графикте дәл сол көрсетіледі. Көрсетілген сомадан артық есептелген бөлік пулға түсіп, келесі айларда таңдалған тәсілмен бөлінеді; егер сома есептелгеннен көп болса, айырма жинақталған пулдан алынады (оның қалдығынан аспайды). Бұл айда пулды бөлу тәсілі қолданылмайды. Субсидиялау кезінде сома пропорционал бөлінеді. Сыйақы бойынша соңғы күні барлық сыйақы мен пулдың бүкіл қалдығы төленеді.',
@@ -1865,7 +1871,7 @@ function renderSeasonalGraceTable() {
 // процентов этого месяца (по последнему расчёту); такие поля подсвечиваются.
 function updatePayPctWarning() {
   const box = document.getElementById('paypct-warning');
-  if (!box) return;
+  if (!box) return [];
   const over = [];
   if (lastResult) {
     lastResult.rows.forEach((r, idx) => {
@@ -1877,10 +1883,30 @@ function updatePayPctWarning() {
   document.querySelectorAll('#grace-tbody input[data-field="payPct"]').forEach(inp => {
     inp.classList.toggle('over-accrued', over.some(o => o.idx === +inp.dataset.idx));
   });
-  if (!over.length) { box.style.display = 'none'; box.textContent = ''; return; }
+  if (!over.length) { box.style.display = 'none'; box.textContent = ''; return over; }
   box.textContent = t('payPctWarnTitle') + ' ' + over.map(o =>
     `${graceMonthLabel(o.idx)} (${t('payPctWarnItem')} ${formatMoney(o.v)}, ${t('payPctWarnAccrued')} ${formatMoney(o.acc)})`).join('; ') + '.';
   box.style.display = 'block';
+  return over;
+}
+
+// Всплывающее уведомление (закрывается само через несколько секунд или по клику).
+let toastTimer = null;
+function showToast(msg) {
+  let el = document.getElementById('toast');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'toast';
+    el.className = 'toast';
+    el.setAttribute('role', 'alert');
+    el.addEventListener('click', () => el.classList.remove('visible'));
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+  void el.offsetWidth;
+  el.classList.add('visible');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('visible'), 5000);
 }
 
 // Enter уводит фокус на ту же графу в следующей строке — удобно вводить
@@ -1922,6 +1948,11 @@ function attachWeightODInputBehavior(inp) {
     if (inp.dataset.field === 'payPct') updatePayPctWarning();
   });
   inp.addEventListener('keydown', focusNextRowOnEnter);
+  if (inp.dataset.field === 'payPct') {
+    inp.addEventListener('change', () => {
+      if (updatePayPctWarning().some(o => o.idx === +inp.dataset.idx)) showToast(t('payPctToast'));
+    });
+  }
 }
 
 function methodLabelFull(method) { return method === 'annuity' ? t('methodAnnuityFull') : t('methodEqualFull'); }
@@ -2036,7 +2067,7 @@ function doCalculate() {
   lastResult = result;
   document.getElementById('btn-export').disabled = false;
   renderResults(result);
-  updatePayPctWarning();
+  if (updatePayPctWarning().length) showToast(t('payPctToast'));
 }
 
 function escapeXml(s) {
