@@ -1941,11 +1941,21 @@ function updatePoolWarning() {
   return over;
 }
 
-// Распределение пула в любом случае (любой способ, ручные суммы): если в месяце
-// распределяется больше, чем начислено вознаграждения за этот период, — уведомление.
+// Ручная сумма распределения (столбец «Сумма распределения по % (ручн.)» или её
+// субсидируемый вариант) в этом месяце больше начисленного за период вознаграждения.
+// Автоматические способы распределения (равномерно, ближайший платёж и т. д.) и
+// списание остатка на последней дате — не считаются.
+function isManualDistOver(r, idx, params) {
+  const m = monthsState[idx];
+  if (!m || !r || r.lastPct || !(r.distribution > r.interestAccrued + 0.005)) return false;
+  const clientTyped = params.poolMethod === 'manual' && Number(m.weight) > 0;
+  const subTyped = params.subsidyEnabled && params.poolMethodSub === 'manual' && Number(m.weightSub) > 0;
+  return clientTyped || subTyped;
+}
+
 function updateDistOverWarning() {
   const box = document.getElementById('dist-warning');
-  const over = lastResult ? lastResult.rows.filter(r => r.distribution > r.interestAccrued + 0.005) : [];
+  const over = lastResult ? lastResult.rows.filter((r, idx) => isManualDistOver(r, idx, lastResult.params)) : [];
   if (box) {
     if (!over.length) { box.style.display = 'none'; box.textContent = ''; }
     else {
@@ -2095,7 +2105,7 @@ function renderResults(result) {
 
   const tbody = document.getElementById('schedule-tbody');
   tbody.innerHTML = '';
-  for (const r of result.rows) {
+  for (const [rowIdx, r] of result.rows.entries()) {
     const tr = document.createElement('tr');
     if (r.graceOD || r.gracePct) tr.classList.add('grace-row');
     const dateHtml = formatDateRu(r.date) + (r.adjusted
@@ -2110,7 +2120,7 @@ function renderResults(result) {
       <td class="subsidy-col">${formatMoney(r.subsidyPart)}</td>
       <td class="subsidy-col">${formatMoney(r.clientPart)}</td>
       <td>${formatMoney(r.poolAdd)}</td>
-      <td class="${r.distribution > r.interestAccrued + 0.005 ? 'cell-over' : ''}">${formatMoney(r.distribution)}</td>
+      <td class="${isManualDistOver(r, rowIdx, result.params) ? 'cell-over' : ''}">${formatMoney(r.distribution)}</td>
       <td>${formatMoney(r.totalPayment)}</td>
       <td>${formatMoney(r.balanceEnd)}</td>
     `;
