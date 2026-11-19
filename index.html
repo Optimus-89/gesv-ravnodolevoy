@@ -461,7 +461,7 @@
             <option value="manual" data-i18n="poolManual">Ручное распределение</option>
           </select>
           <div class="field-note" id="pool-note-untilNextGrace" style="display:none;" data-i18n="poolNoteUntilNextGrace">«До следующего льготного периода»: пул равномерно распределяется на платежи до начала следующей льготы по %, а не до конца срока.</div>
-          <div class="field-note" id="pool-note-manual" style="display:none;" data-i18n="poolNoteManual">«Ручное распределение»: сумма распределения — сумма в денежном выражении, которая списывается из пула на эту дату (не доля в процентах). Если указанная сумма больше накопленного пула — списывается весь остаток пула.</div>
+          <div class="field-note" id="pool-note-manual" style="display:none;" data-i18n="poolNoteManual">«Ручное распределение»: сумма распределения — сумма в денежном выражении, которая списывается из пула на эту дату (не доля в процентах). Сумма платится в указанном размере даже без льготы: если она больше накопленного пула (или пула нет), разница платится сверх пула как дополнительные проценты. На последней дате списывается весь остаток пула.</div>
         </div>
       </details>
     </div>
@@ -703,7 +703,7 @@ const I18N = {
     poolUntilNextGrace: 'До следующего льготного периода',
     poolManual: 'Ручное распределение',
     poolNoteUntilNextGrace: '«До следующего льготного периода»: пул равномерно распределяется на платежи до начала следующей льготы по %, а не до конца срока.',
-    poolNoteManual: '«Ручное распределение»: сумма распределения — сумма в денежном выражении, которая списывается из пула на эту дату (не доля в процентах). Если указанная сумма больше накопленного пула — списывается весь остаток пула.',
+    poolNoteManual: '«Ручное распределение»: сумма распределения — сумма в денежном выражении, которая списывается из пула на эту дату (не доля в процентах). Сумма платится в указанном размере даже без льготы: если она больше накопленного пула (или пула нет), разница платится сверх пула как дополнительные проценты. На последней дате списывается весь остаток пула.',
     seasonalGraceHeading: 'Льготы по календарным месяцам',
     monthColHeader: 'Месяц',
     graceOdColHeader: 'Льгота ОД',
@@ -863,7 +863,7 @@ const I18N = {
     poolUntilNextGrace: 'Келесі жеңілдік кезеңіне дейін',
     poolManual: 'Қолмен бөлу',
     poolNoteUntilNextGrace: '«Келесі жеңілдік кезеңіне дейін»: пул сыйақы бойынша келесі жеңілдік басталғанға дейінгі төлемдерге тең бөлінеді, мерзім соңына дейін емес.',
-    poolNoteManual: '«Қолмен бөлу»: бөлу сомасы — осы күнге пулдан есептен шығарылатын ақшалай сома (пайыздық үлес емес). Көрсетілген сома жинақталған пулдан асып кетсе — пулдың бүкіл қалдығы есептен шығарылады.',
+    poolNoteManual: '«Қолмен бөлу»: бөлу сомасы — осы күнге пулдан есептен шығарылатын ақшалай сома (пайыздық үлес емес). Сома көрсетілген мөлшерде жеңілдіксіз де төленеді: егер ол жинақталған пулдан асса (немесе пул болмаса), айырма пулдан тыс қосымша сыйақы ретінде төленеді. Соңғы күні пулдың бүкіл қалдығы есептен шығарылады.',
     seasonalGraceHeading: 'Күнтізбелік айлар бойынша жеңілдіктер',
     monthColHeader: 'Ай',
     graceOdColHeader: 'НБ жеңілдігі',
@@ -1462,20 +1462,26 @@ function generateSchedule(p) {
       if (method === 'nearest') return pool;
       if (method === 'all') return remainingPct[i] > 0 ? pool / remainingPct[i] : 0;
       if (method === 'untilNextGrace') return remainingPctLocal[i] > 0 ? pool / remainingPctLocal[i] : 0;
-      if (method === 'manual') return remainingPct[i] === 1 ? pool : Math.min(pool, w);
+      // Ручная сумма платится в полном объёме, даже если пула нет или он меньше
+      // суммы: разница сверх пула — дополнительные проценты (пул в минус не уходит).
+      // На последней дате по % остаток пула списывается целиком.
+      if (method === 'manual') return remainingPct[i] === 1 ? Math.max(pool, w) : w;
       return 0;
     };
-    let interestPaid = 0, distribution = 0, paidSub = 0, distSub = 0;
+    let interestPaid = 0, distribution = 0, paidSub = 0, distSub = 0, fromPool = 0, fromPoolSub = 0;
     if (!deferred) {
       interestPaid = interestAccrued;
       paidSub = acc.sub;
-      const distClient = distributeBy(p.poolMethod, poolStart - poolSubStart, weight[i]);
-      distSub = distributeBy(p.poolMethodSub, poolSubStart, weightSub[i]);
+      const poolClientStart = Math.max(0, poolStart - poolSubStart);
+      const distClient = distributeBy(p.poolMethod, poolClientStart, weight[i]);
+      distSub = distributeBy(p.poolMethodSub, Math.max(0, poolSubStart), weightSub[i]);
       distribution = distClient + distSub;
+      fromPool = Math.min(distClient, poolClientStart);
+      fromPoolSub = Math.min(distSub, Math.max(0, poolSubStart));
     }
-    const poolEnd = poolStart + poolAdd - distribution;
+    const poolEnd = poolStart + poolAdd - fromPool - fromPoolSub;
     state.pool = poolEnd;
-    state.poolSub = poolSubStart + (deferred ? acc.sub : 0) - distSub;
+    state.poolSub = poolSubStart + (deferred ? acc.sub : 0) - fromPoolSub;
 
     return {
       interestAccrued, interestPaid, poolAdd, distribution, poolEnd,
@@ -1858,6 +1864,14 @@ function attachWeightODInputBehavior(inp) {
     const pos = Math.max(0, formatted.length - cursorFromEnd);
     inp.setSelectionRange(pos, pos);
     monthsState[+inp.dataset.idx][inp.dataset.field] = num;
+    // Суммы распределения по % работают только при ручном способе — при вводе
+    // суммы переключаем соответствующий способ на «Ручное распределение».
+    const methodId = inp.dataset.field === 'weight' ? 'f-pool-method' : inp.dataset.field === 'weightSub' ? 'f-pool-method-sub' : null;
+    const methodSelect = methodId && document.getElementById(methodId);
+    if (num > 0 && methodSelect && methodSelect.value !== 'manual') {
+      methodSelect.value = 'manual';
+      methodSelect.dispatchEvent(new Event('change'));
+    }
   });
   inp.addEventListener('keydown', focusNextRowOnEnter);
 }
